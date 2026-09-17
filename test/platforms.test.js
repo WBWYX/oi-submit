@@ -185,3 +185,39 @@ test('新加的三家都有默认语言，否则提交时会用页面上次的�
   assert.equal(pickOption(options, DEFAULT_LANGUAGE.qoj)?.value, 'C++17');
   assert.equal(pickOption(options, 'C++17')?.value, 'C++17');
 });
+
+/* ──────────────────────── HDU ──────────────────────── */
+
+test('HDU：题目页 → 提交页，题号在 query 里', () => {
+  assert.deepEqual(submitTarget('https://acm.hdu.edu.cn/showproblem.php?pid=2609'), {
+    platform: 'hdu',
+    submitUrl: 'https://acm.hdu.edu.cn/submit.php?pid=2609',
+    problemNum: '2609',
+    problemKey: '2609',
+  });
+});
+
+test('HDU：不是题目页就返回 null，不照原样打开', () => {
+  // 打开一个不是提交页的页面，填表会一直等元素等到超时，而人只看到浏览器无故跳了一下
+  assert.equal(submitTarget('https://acm.hdu.edu.cn/listproblem.php?vol=1'), null);
+  assert.equal(submitTarget('https://acm.hdu.edu.cn/'), null);
+});
+
+test('HDU 的分支没抢掉 Timus 那个兜底', () => {
+  /*
+   * submitTarget 末尾的 Timus 是个**没有 if 的兜底分支**——新平台的分支必须插在
+   * 它前面。插错位置的表现是 Timus 整个失效，而 HDU 看起来一切正常。
+   */
+  assert.deepEqual(submitTarget('https://acm.timus.ru/problem.aspx?space=1&num=1297'), {
+    platform: 'timus',
+    submitUrl: 'https://acm.timus.ru/submit.aspx?space=1&num=1297',
+    problemNum: '1297',
+    problemKey: '1297',
+  });
+});
+
+test('platformOf 认出 HDU，且不误伤相似域名', () => {
+  assert.equal(platformOf('https://acm.hdu.edu.cn/showproblem.php?pid=1000'), 'hdu');
+  assert.equal(platformOf('https://hdu.edu.cn/'), null, '学校主页不是 OJ');
+  assert.equal(platformOf('https://notacm.hdu.edu.cn/'), null);
+});

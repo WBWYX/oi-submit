@@ -11,6 +11,7 @@ import { parseLuogu } from '../src/shared/statement/luogu.js';
 import { parseQoj } from '../src/shared/statement/qoj.js';
 import { parseNowcoder } from '../src/shared/statement/nowcoder.js';
 import { parseLoj } from '../src/shared/statement/loj.js';
+import { parseHdu } from '../src/shared/statement/hdu.js';
 import { sliceClass } from '../src/shared/statement/html.js';
 
 /**
@@ -26,6 +27,14 @@ import { sliceClass } from '../src/shared/statement/html.js';
  */
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = (name) => readFileSync(join(here, 'fixtures', name), 'utf8');
+/**
+ * HDU 的页面是 GB2312，夹具按**原始字节**存（用 utf8 读会整页乱码）。
+ *
+ * 刻意不把夹具转存成 UTF-8：那样省事，但 GB2312 解码恰恰是这一家最容易出错、
+ * 全仓库又零先例的一块，转存等于把唯一需要覆盖的东西绕过去。
+ */
+const gbkFixture = (name) =>
+  new TextDecoder('gbk').decode(readFileSync(join(here, 'fixtures', name)));
 
 const CF_URL = 'https://codeforces.com/contest/3/problem/B';
 const AT_URL = 'https://atcoder.jp/contests/abc475/tasks/abc475_c';
@@ -33,10 +42,12 @@ const TIMUS_URL = 'https://acm.timus.ru/problem.aspx?space=1&num=1297';
 const QOJ_URL = 'https://qoj.ac/problem/1000';
 const NC_URL = 'https://ac.nowcoder.com/acm/problem/13885';
 const LOJ_URL = 'https://loj.ac/p/10000';
+const HDU_URL = 'https://acm.hdu.edu.cn/showproblem.php?pid=2609';
+const HDU_CN_URL = 'https://acm.hdu.edu.cn/showproblem.php?pid=2049';
 
 const lojFixture = () => JSON.parse(fixture('loj-10000.json'));
 
-test('identifyUrl 认出七个平台的题目链接', () => {
+test('identifyUrl 认出八个平台的题目链接', () => {
   assert.deepEqual(identifyUrl('https://www.luogu.com.cn/problem/P3538'), {
     platform: 'luogu',
     problemKey: 'P3538',
@@ -73,12 +84,14 @@ test('identifyUrl 认出七个平台的题目链接', () => {
     problemKey: '98765-D',
   });
   assert.deepEqual(identifyUrl(LOJ_URL), { platform: 'loj', problemKey: '10000' });
+  // HDU 的题号在 query 里，不在路径里
+  assert.deepEqual(identifyUrl(HDU_URL), { platform: 'hdu', problemKey: '2609' });
 });
 
 test('identifyUrl 认不出来就返回 null，绝不猜', () => {
   // 列表页不是题目页——猜一个题号出来会让人抓到错的题面，覆盖掉自己的笔记
   assert.equal(identifyUrl('https://codeforces.com/contest/2219'), null);
-  assert.equal(identifyUrl('https://acm.hdu.edu.cn/showproblem.php?pid=1000'), null);
+  assert.equal(identifyUrl('https://acm.hdu.edu.cn/listproblem.php?vol=1'), null, 'HDU 列表页不是题目页');
   assert.equal(identifyUrl('随便写的'), null);
   assert.equal(identifyUrl('https://www.luogu.com.cn/training/123'), null);
   assert.equal(identifyUrl('https://acm.timus.ru/status.aspx'), null, 'Timus 必须带 num');
@@ -240,6 +253,7 @@ test('各平台都带 front matter，且含时限与空间', () => {
     parseQoj(fixture('qoj-1000.html'), '1000', QOJ_URL),
     parseNowcoder(fixture('nowcoder-13885.html'), '13885', NC_URL),
     parseLoj(lojFixture(), '10000', LOJ_URL),
+    parseHdu(gbkFixture('hdu-2609.html'), '2609', HDU_URL),
   ];
   for (const s of all) {
     assert.ok(s.markdown.startsWith('---\n'), `${s.platform} 没有 front matter`);
@@ -268,6 +282,7 @@ test('样例内容与 Markdown 里的代码块一致', () => {
     parseQoj(fixture('qoj-1000.html'), '1000', QOJ_URL),
     parseNowcoder(fixture('nowcoder-13885.html'), '13885', NC_URL),
     parseLoj(lojFixture(), '10000', LOJ_URL),
+    parseHdu(gbkFixture('hdu-2609.html'), '2609', HDU_URL),
   ];
   for (const s of all) {
     for (const [i, sample] of s.samples.entries()) {
@@ -484,4 +499,93 @@ test('取块时标签名允许带数字（h1–h6）', () => {
    */
   const html = '<body><h2 class="problem_title">1297. Palindrome</h2></body>';
   assert.equal(sliceClass(html, 'problem_title'), '<h2 class="problem_title">1297. Palindrome</h2>');
+});
+
+/* ──────────────────────── HDU ──────────────────────── */
+
+test('HDU：标题、限制、样例都抓得到', () => {
+  const s = parseHdu(gbkFixture('hdu-2609.html'), '2609', HDU_URL);
+  assert.equal(s.platform, 'hdu');
+  assert.equal(s.problemKey, '2609');
+  assert.equal(s.title, 'How many');
+  assert.equal(s.samples.length, 1);
+  assert.ok(s.samples[0].input.startsWith('4\n0110\n'), '样例输入对不上');
+  assert.equal(s.samples[0].output, '1\n2\n');
+});
+
+test('HDU：限制取 Java/Others 里的 Others，不是 Java', () => {
+  /*
+   * 页面写的是 `Time Limit: 2000/1000 MS (Java/Others)`——斜杠前是 Java 的。
+   * 取错了不会报错，只会让本地判题宽一倍，表现是「本地过、线上 TLE」。
+   */
+  const s = parseHdu(gbkFixture('hdu-2609.html'), '2609', HDU_URL);
+  assert.equal(s.timeLimitMs, 1000, '取成了 Java 的 2000ms');
+  assert.equal(s.memoryLimitMb, 32, '32768 K 应换算成 32 MB');
+});
+
+test('HDU：中文题不乱码', () => {
+  /*
+   * HDU 是 GB2312。`Response.text()` 按 Fetch 规范永远 UTF-8 解码、不看
+   * Content-Type 里的 charset，所以取页面时必须自己 TextDecoder('gbk')。
+   * 这条断言压的就是那条路径——夹具按原始字节存，正是为了它。
+   */
+  const s = parseHdu(gbkFixture('hdu-2049.html'), '2049', HDU_CN_URL);
+  assert.equal(s.title, '不容易系列之(4)——考新郎');
+  assert.ok(s.markdown.includes('考新郎'), '正文里的中文丢了');
+  assert.ok(!s.markdown.includes('�'), '出现了 U+FFFD，说明解码错了');
+});
+
+test('HDU：题面里的图片转成绝对地址，不留 ../', () => {
+  // 2049 的关键公式就在图里，吞掉图片题面就不完整
+  const s = parseHdu(gbkFixture('hdu-2049.html'), '2049', HDU_CN_URL);
+  assert.ok(
+    s.markdown.includes('![](https://acm.hdu.edu.cn/data/images/C40-1007-1.gif)'),
+    '图片没转成绝对地址',
+  );
+  assert.ok(!s.markdown.includes('](../'), '相对路径没解析掉');
+});
+
+test('HDU：正文各节都在，不只有样例', () => {
+  /*
+   * 真实页面里 Problem Description / Input / Output 与它们的 panel_content
+   * 之间夹着一个空格，而 balancedFrom 要求起始位置就是 `<`。没处理这个空格时，
+   * **正文整节整节地消失、只剩样例**，而且不报错——这条就是为它写的。
+   */
+  const s = parseHdu(gbkFixture('hdu-2609.html'), '2609', HDU_URL);
+  const headings = [...s.markdown.matchAll(/^## (.+)$/gm)].map((m) => m[1]);
+  assert.deepEqual(headings, ['题目描述', '输入格式', '输出格式', '样例 #1', '来源']);
+  assert.ok(s.markdown.includes('necklaces'), '题目描述的正文没抓到');
+});
+
+test('HDU：Author / Source 不混进正文，收到末尾的来源里', () => {
+  const s = parseHdu(gbkFixture('hdu-2609.html'), '2609', HDU_URL);
+  const body = s.markdown.slice(s.markdown.indexOf('## 题目描述'), s.markdown.indexOf('## 来源'));
+  assert.ok(!body.includes('yifenfei'), '出题人混进正文了');
+  assert.ok(s.markdown.includes('Author: yifenfei'));
+});
+
+test('HDU：样例在正文里不重复出现', () => {
+  const s = parseHdu(gbkFixture('hdu-2609.html'), '2609', HDU_URL);
+  const times = s.markdown.split('0110\n1100').length - 1;
+  assert.equal(times, 1, `样例出现了 ${times} 次`);
+});
+
+test('HDU：结构认不出时报错，不返回空题面', () => {
+  // 抓回一份空题面会覆盖掉你自己写的笔记，所以宁可报错
+  assert.throws(() => parseHdu('<html><body>not a problem page</body></html>', '1', HDU_URL), {
+    name: 'StatementError',
+  });
+  // 有标题但一个小节都没有：同样不算数
+  assert.throws(() => parseHdu("<h1 style='color:#1A5CC8'>X</h1>", '1', HDU_URL), {
+    name: 'StatementError',
+  });
+});
+
+test('HDU：class 不带引号也认得出', () => {
+  /*
+   * HDU 写的是 `class=panel_title`（无引号），而 html.js 的 sliceClass 要求
+   * `class=["']`——复用它会一个小节都匹配不到。这条钉住「自己扫」这个决定。
+   */
+  const s = parseHdu(gbkFixture('hdu-2609.html'), '2609', HDU_URL);
+  assert.ok(s.markdown.includes('## 输入格式'));
 });

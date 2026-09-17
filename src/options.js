@@ -1,7 +1,7 @@
 import { DEFAULT_SETTINGS } from './shared/platforms.js';
 
 const $ = (id) => document.getElementById(id);
-const PLATFORMS = ['luogu', 'codeforces', 'atcoder', 'timus', 'qoj', 'nowcoder', 'loj'];
+const PLATFORMS = ['luogu', 'codeforces', 'atcoder', 'timus', 'qoj', 'nowcoder', 'loj', 'hdu'];
 
 async function load() {
   const stored = await chrome.storage.local.get('settings');

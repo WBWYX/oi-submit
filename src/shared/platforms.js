@@ -15,6 +15,7 @@ export const DOMAINS = {
   qoj: ['qoj.ac'],
   nowcoder: ['ac.nowcoder.com'],
   loj: ['loj.ac'],
+  hdu: ['acm.hdu.edu.cn'],
 };
 
 export const PLATFORM_NAME = {
@@ -25,6 +26,7 @@ export const PLATFORM_NAME = {
   qoj: 'QOJ',
   nowcoder: '牛客',
   loj: 'LibreOJ',
+  hdu: 'HDU',
 };
 
 /**
@@ -56,6 +58,7 @@ const QOJ_CONTEST = /^\/contest\/(\d+)\/problem\/(\d+)/;
 const NC_PROBLEM = /^\/acm\/problem\/(\d+)/;
 const NC_CONTEST = /^\/acm\/contest\/(\d+)\/([A-Za-z0-9]+)/;
 const LOJ_PROBLEM = /^\/p\/(\d+)/;
+const HDU_PID = /[?&]pid=(\d+)/;
 
 /**
  * 题目链接 → 提交页链接 + 题目定位信息。
@@ -178,6 +181,23 @@ export function submitTarget(url) {
     };
   }
 
+  if (platform === 'hdu') {
+    /*
+     * HDU 的提交页是独立的 `submit.php?pid=<pid>`，题号在 query 里（同 Timus 的形态）。
+     *
+     * 那个页面**要登录**，匿名访问直接 302 跳登录页——所以填表脚本必须先确认
+     * 表单在不在，不在就明说「请先登录 HDU」，而不是干等元素等到超时。
+     */
+    const pid = HDU_PID.exec(u.search);
+    if (!pid) return null;
+    return {
+      platform,
+      submitUrl: `${u.origin}/submit.php?pid=${pid[1]}`,
+      problemNum: pid[1],
+      problemKey: pid[1],
+    };
+  }
+
   // Timus：题目页是 problem.aspx?space=1&num=1297，提交页是独立的 submit.aspx
   const num = TIMUS_NUM.exec(u.search);
   if (!num) return null;
@@ -216,6 +236,12 @@ export const DEFAULT_LANGUAGE = {
    * C++ 标准是另一个下拉（std），由 lojStandard 单独配。
    */
   loj: 'C++',
+  /*
+   * HDU 的语言下拉只有 7 项、文本极短：G++ / GCC / C++ / C / Pascal / Java / C#。
+   * 选 `G++` 而不是 `C++`：HDU 的「C++」那一项用的是更老的编译器，
+   * 而 pickOption 是「包含」匹配——填 `C++` 会先命中 `G++` 之外的那一项。
+   */
+  hdu: 'G++',
 };
 
 export const DEFAULT_SETTINGS = {

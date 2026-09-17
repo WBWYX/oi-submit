@@ -1,6 +1,6 @@
 # OI Submit
 
-把 OI Bench 里的代码提交到 **洛谷 / Codeforces / AtCoder / Timus(URAL) / QOJ / 牛客 / LibreOJ** 的浏览器扩展。
+把 OI Bench 里的代码提交到 **洛谷 / Codeforces / AtCoder / Timus(URAL) / QOJ / 牛客 / LibreOJ / HDU** 的浏览器扩展。
 
 替代 CPH-NG Submit，多出三件它没有的事：
 
@@ -9,10 +9,10 @@
 | 选语言 | 不管 —— 用网页上「你上次选的那个」；AtCoder 更是写死 `6017` | 按平台配置，**按语言名文本匹配**而不是选项编号 |
 | 洛谷 O2 | 不管 | 可配置，提交时设置 |
 | Timus | 不支持 | 支持（凭据是 Judge ID，不需要登录态） |
-| QOJ / 牛客 / LibreOJ | 不支持 | 支持 |
+| QOJ / 牛客 / LibreOJ / HDU | 不支持 | 支持 |
 | 评测结果 | 发出去就没消息了 | 回传给 OI Bench，面板上直接看 |
 | 最后那一下 | 直接替你点 | **默认填好就停下，由你自己点提交**（可关） |
-| 抓题面 | 不做 | 七家都能抓，转成 Markdown 存到题目目录 |
+| 抓题面 | 不做 | 八家都能抓，转成 Markdown 存到题目目录 |
 
 ## 安装
 
@@ -64,7 +64,7 @@ LibreOJ 单独有一项 **C++ 标准**。LOJ 把编译选项拆成四个下拉�
 
 侧栏点「抓取题面」时，题面由**这个扩展**去取，不再走 icpc-workbench 的服务端。
 
-七家里 **LibreOJ 那份质量最高**：它的接口直接给结构化数据，正文本来就是 Markdown
+八家里 **LibreOJ 那份质量最高**：它的接口直接给结构化数据，正文本来就是 Markdown
 （`api.loj.ac/api/problem/getProblem`），所以那条路上一条认标签的正则都没有。
 其余六家都是从 HTML 里扒。
 
@@ -104,7 +104,7 @@ manifest.json          MV3
 src/shared/sio.js      手写的 socket.io v4 客户端（不装依赖的原因见文件头）
 src/shared/platforms.js 平台识别、提交页 URL 构造、语言匹配（纯函数，有测试）
 src/background.js      service worker：连 router、开提交页、转发结果
-src/content/           七个平台各自的填表与结果回读
+src/content/           八个平台各自的填表与结果回读
 src/content/editor.js  往 CodeMirror 5/6、Monaco、原生 textarea 里塞代码（为什么不能直接赋值见文件头）
 test/                  node:test，跑 `npm test`
 ```

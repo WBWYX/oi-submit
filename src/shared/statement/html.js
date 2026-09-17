@@ -96,10 +96,28 @@ export function decodeEntities(text) {
  * **不能动**：Codeforces 和 AtCoder 的公式本来就是 `$...$`，任何「聪明」的
  * 处理都只会把它弄坏。
  */
-export function htmlToMarkdown(html) {
+export function htmlToMarkdown(html, opts = {}) {
   let text = html;
   // script/style 整块丢掉，它们的内容不是给人看的
   text = text.replace(/<(script|style)[\s\S]*?<\/\1>/gi, '');
+  /*
+   * 图片：**只在调用方给了 baseUrl 时才转**，缺省行为与以前逐字一致（被 stripTags 吞掉）。
+   *
+   * 做成可选是因为这个函数是五家共用的，而那五家现在都不需要图片；为 HDU 一家
+   * 改变它们的输出是不必要的风险。HDU 老题的关键公式常常就在图里，不转就缺内容。
+   *
+   * 用 new URL 解析而不是字符串拼接：HDU 的 src 是 `../data/images/x.gif`，
+   * 页面在 /showproblem.php，手拼会留下 `../`。
+   */
+  if (opts.baseUrl) {
+    text = text.replace(/<img[^>]*?\bsrc=["']?([^"'\s>]+)[^>]*>/gi, (_, src) => {
+      try {
+        return ` ![](${new URL(src, opts.baseUrl).href}) `;
+      } catch {
+        return ''; // src 拼不出合法 URL 就当它不存在，不要留一个坏链接
+      }
+    });
+  }
   text = text.replace(/<br\s*\/?>/gi, '\n');
   text = text.replace(/<\/(p|div|section|h[1-6])>/gi, '\n\n');
   text = text.replace(/<li[^>]*>/gi, '\n- ');

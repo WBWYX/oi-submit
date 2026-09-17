@@ -24,8 +24,9 @@ import * as timus from './timus.js';
 import * as qoj from './qoj.js';
 import * as nowcoder from './nowcoder.js';
 import * as loj from './loj.js';
+import * as hdu from './hdu.js';
 
-const SUBMITTERS = { luogu, codeforces, atcoder, timus, qoj, nowcoder, loj };
+const SUBMITTERS = { luogu, codeforces, atcoder, timus, qoj, nowcoder, loj, hdu };
 
 const send = (msg) => chrome.runtime.sendMessage(msg).catch(() => undefined);
 

@@ -26,6 +26,7 @@ import { parseTimus } from './timus.js';
 import { parseQoj } from './qoj.js';
 import { parseNowcoder } from './nowcoder.js';
 import { parseLoj } from './loj.js';
+import { parseHdu } from './hdu.js';
 
 /**
  * 认出链接属于哪道题。认不出返回 null——**绝不猜**：猜错的后果是抓回一份
@@ -87,10 +88,22 @@ export function identifyUrl(raw) {
     const m = /\/p\/(\d+)/.exec(url.pathname);
     return m?.[1] ? { platform: 'loj', problemKey: m[1] } : null;
   }
+  if (host === 'acm.hdu.edu.cn') {
+    // 题号在 query 里（/showproblem.php?pid=2609），同 Timus 的形态
+    const m = /[?&]pid=(\d+)/.exec(url.search);
+    return m?.[1] ? { platform: 'hdu', problemKey: m[1] } : null;
+  }
   return null;
 }
 
-const SUPPORTED = '洛谷、Codeforces、AtCoder、Timus、QOJ、牛客、LibreOJ';
+/**
+ * 报错文案里那串平台名。
+ *
+ * **加平台必须手改这里** —— 它是硬编码的，没有任何机制会提醒你
+ * （`shared/platforms.js` 里那张 PLATFORM_NAME 表看着像注册表，但它只服务提交，
+ * 而且在抓题面这条链路上根本没被引用）。
+ */
+const SUPPORTED = '洛谷、Codeforces、AtCoder、Timus、QOJ、牛客、LibreOJ、HDU';
 
 export async function fetchStatement(rawUrl) {
   const id = identifyUrl(rawUrl);
@@ -119,6 +132,23 @@ export async function fetchStatement(rawUrl) {
       return assertSize(parseNowcoder(await getHtml(rawUrl), id.problemKey, rawUrl));
     case 'loj':
       return assertSize(await fetchLoj(id.problemKey, rawUrl));
+    case 'hdu':
+      /*
+       * **必须显式列出来。** 下面的 default 落在 Timus —— 漏了这个 case 不会报
+       * 「不支持」，而是拿 HDU 的题号去抓 Timus，最后报一句莫名其妙的
+       * 「Timus 页面里没找到题目标题」。
+       *
+       * 页面是 GB2312，所以这是唯一一个要显式指定编码的平台。
+       */
+      return assertSize(
+        parseHdu(
+          await getHtml(`https://acm.hdu.edu.cn/showproblem.php?pid=${id.problemKey}`, {
+            charset: 'gbk',
+          }),
+          id.problemKey,
+          rawUrl,
+        ),
+      );
     default:
       return assertSize(
         parseTimus(
@@ -202,14 +232,25 @@ async function fetchLoj(displayId, url) {
   return parseLoj(await res.json(), displayId, url);
 }
 
-async function getHtml(url) {
+/**
+ * 取页面 HTML。
+ *
+ * `charset` 显式传，**不嗅探 Content-Type**：只有 HDU 需要它（GB2312），
+ * 把一个单平台的特例做成所有平台都要走的分支是不必要的风险。
+ *
+ * 为什么不能直接 `res.text()`：`Response.text()` 按 Fetch 规范**永远按 UTF-8 解码**，
+ * 完全不看 Content-Type 里的 charset（认 charset 的是老的 `XHR.responseText`，
+ * 两回事）。实测 HDU 2049 那样的中文题走 text() 会产出 393 个 U+FFFD。
+ */
+async function getHtml(url, { charset } = {}) {
   const res = await request(url, { Accept: 'text/html,application/xhtml+xml' });
   if (res.status === 404) throw new StatementError(404, `页面不存在：${url}`);
   if (res.status === 403) {
     throw new StatementError(403, `目标站点拒绝访问（403）。若是需要登录的题目，请先在浏览器里登录。`);
   }
   if (!res.ok) throw new StatementError(502, `目标站点返回 HTTP ${res.status}`);
-  return res.text();
+  if (!charset) return res.text();
+  return new TextDecoder(charset).decode(await res.arrayBuffer());
 }
 
 /**
