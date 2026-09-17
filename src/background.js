@@ -16,6 +16,7 @@
 
 import { SocketIoClient, State } from './shared/sio.js';
 import { DEFAULT_SETTINGS, PLATFORM_NAME, submitTarget } from './shared/platforms.js';
+import { fetchStatement } from './shared/statement/index.js';
 
 /** tabId → 待处理的提交任务，存在 session 存储里（见文件头） */
 const PENDING_KEY = 'pending';
@@ -65,6 +66,10 @@ async function connect() {
 
   socket.on('submitRequest', (data) => {
     void handleSubmitRequest(data);
+  });
+
+  socket.on('statementRequest', (data) => {
+    void handleStatementRequest(data);
   });
 
   socket.connect();
@@ -135,6 +140,33 @@ async function handleSubmitRequest(data) {
   const pending = await readPending();
   pending[tab.id] = task;
   await writePending(pending);
+}
+
+/* ────────────────────────── 抓题面 ────────────────────────── */
+
+/**
+ * 按链接抓题面，转成 Markdown 回传。
+ *
+ * 全程在 service worker 里完成，**不开标签页**：需要的只是一次带登录态的
+ * 请求，而扩展本来就在浏览器里。这也正是这套东西从服务端搬过来的理由——
+ * 那边为了冒充浏览器，背着 Cookie 配置、洛谷的 C3VK 重试、以及 Cloudflare
+ * 按 TLS 指纹拦截时的 curl 回退，搬过来之后三样一起消失。
+ */
+async function handleStatementRequest(data) {
+  const requestId = data?.requestId ?? null;
+  const url = String(data?.url ?? '');
+  try {
+    const statement = await fetchStatement(url);
+    socket?.emit('statementResult', { requestId, url, ok: true, statement });
+  } catch (error) {
+    /*
+     * 失败原因必须原样带回去。「抓取失败」四个字对排查毫无帮助——
+     * 是没登录、题号不存在，还是页面改版了，处理方式完全不同。
+     */
+    const message = String(error?.message ?? error);
+    socket?.emit('statementResult', { requestId, url, ok: false, error: message });
+    notify('抓取题面失败', message);
+  }
 }
 
 /** 把结果发回 oi-bench。发不出去（没连上）就只剩通知，至少人知道发生了什么。 */
