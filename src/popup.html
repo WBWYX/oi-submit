@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>OI Submit</title>
+    <style>
+      body { width: 260px; margin: 0; padding: 12px; font: 13px/1.5 system-ui, "Microsoft YaHei", sans-serif; }
+      .row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+      .dot { width: 9px; height: 9px; border-radius: 50%; background: #8b949e; flex: 0 0 auto; }
+      .dot.on { background: #3fb950; }
+      .muted { color: #6e7781; }
+      .msg { margin: 8px 0; padding: 6px 8px; background: #f6f8fa; border-radius: 4px; word-break: break-all; }
+      button { font: inherit; padding: 4px 10px; border: 1px solid #d0d7de; border-radius: 4px; background: #f6f8fa; cursor: pointer; }
+      button:hover { background: #eef1f4; }
+      a { color: #0969da; }
+    </style>
+  </head>
+  <body>
+    <div class="row"><span class="dot" id="dot"></span><strong id="state">连接中…</strong></div>
+    <div class="row muted" id="detail"></div>
+    <div class="msg" id="msg" hidden></div>
+    <div class="row">
+      <button id="reconnect">重连</button>
+      <button id="active">设为活动</button>
+      <a href="#" id="options">选项</a>
+    </div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

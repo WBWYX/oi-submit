@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>OI Submit 选项</title>
+    <style>
+      body { max-width: 640px; margin: 24px auto; padding: 0 16px; font: 14px/1.6 system-ui, "Microsoft YaHei", sans-serif; color: #1f2328; }
+      h1 { font-size: 18px; margin: 0 0 4px; }
+      h2 { font-size: 15px; margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #d0d7de; }
+      label { display: block; margin: 10px 0 4px; font-weight: 600; }
+      input[type="text"], input[type="number"] { width: 100%; box-sizing: border-box; padding: 5px 8px; border: 1px solid #d0d7de; border-radius: 4px; font: inherit; }
+      .hint { color: #6e7781; font-size: 13px; margin: 4px 0 0; }
+      .row { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+      button { font: inherit; padding: 6px 16px; border: 1px solid #d0d7de; border-radius: 4px; background: #1f883d; color: #fff; border-color: #1f883d; cursor: pointer; }
+      button:hover { background: #1a7f37; }
+      #saved { color: #1a7f37; margin-left: 10px; }
+      code { background: #f6f8fa; padding: 0 4px; border-radius: 3px; }
+    </style>
+  </head>
+  <body>
+    <h1>OI Submit 选项</h1>
+    <p class="hint">提交时若 OI Bench 面板里指定了语言，以面板的为准；这里配的是默认值。</p>
+
+    <h2>连接</h2>
+    <label for="port">Router 端口</label>
+    <input type="number" id="port" min="1" max="65535" />
+    <p class="hint">要和 VS Code 里 OI Bench 的 <code>oiBench.router.port</code> 一致，默认 27121。</p>
+
+    <h2>默认语言</h2>
+    <p class="hint">
+      填的是<strong>语言名字里的一段文本</strong>，不是选项编号——AtCoder 的语言编号每场比赛都不一样，
+      Codeforces 也会不定期加新编译器，按文本匹配才不会某天突然选错。
+      找不到匹配项时不会乱猜，会按页面当前选项提交并在结果里注明。
+    </p>
+    <label for="lang-luogu">洛谷</label>
+    <input type="text" id="lang-luogu" placeholder="C++17" />
+    <label for="lang-codeforces">Codeforces</label>
+    <input type="text" id="lang-codeforces" placeholder="GNU G++17" />
+    <label for="lang-atcoder">AtCoder</label>
+    <input type="text" id="lang-atcoder" placeholder="C++ 20" />
+    <label for="lang-timus">Timus</label>
+    <input type="text" id="lang-timus" placeholder="G++" />
+
+    <h2>洛谷</h2>
+    <div class="row"><input type="checkbox" id="o2" /><label for="o2" style="margin:0">默认开启 O2 优化</label></div>
+    <p class="hint">只有洛谷有这个开关，别的平台没有 O2 这个概念。</p>
+
+    <h2>Timus</h2>
+    <label for="judgeid">Judge ID</label>
+    <input type="text" id="judgeid" placeholder="8 位十六进制" />
+    <p class="hint">
+      Timus 没有登录态，Judge ID 就是凭据，在
+      <a href="https://acm.timus.ru/authedit.aspx" target="_blank" rel="noreferrer">作者信息页</a>
+      能看到。只存在本机这个扩展里，不会发给任何人。
+    </p>
+
+    <h2>提交方式</h2>
+    <div class="row"><input type="checkbox" id="manual" /><label for="manual" style="margin:0">填好表单后由我自己点提交</label></div>
+    <p class="hint">
+      开着的话，扩展只负责把代码、语言、题号填进去并把提交按钮标出来，最后那一下由你点。
+      交出去之后照样回传评测结果。关掉则填完直接替你点。
+    </p>
+
+    <h2>评测结果</h2>
+    <div class="row"><input type="checkbox" id="report" /><label for="report" style="margin:0">提交后盯着评测结果回传给 OI Bench</label></div>
+    <p class="hint">关掉的话提交发出去就算完，结果自己看页面。</p>
+
+    <div class="row"><button id="save">保存</button><span id="saved"></span></div>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

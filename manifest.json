@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "OI Submit",
+  "version": "0.1.0",
+  "description": "把 OI Bench 里的代码提交到洛谷 / Codeforces / AtCoder / Timus，可选语言与 O2，并把评测结果回传。",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://www.luogu.com.cn/*",
+    "https://codeforces.com/*",
+    "https://atcoder.jp/*",
+    "https://acm.timus.ru/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.luogu.com.cn/*",
+        "https://codeforces.com/*",
+        "https://atcoder.jp/*",
+        "https://acm.timus.ru/*"
+      ],
+      "js": ["src/content-loader.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/content/*.js", "src/shared/*.js"],
+      "matches": [
+        "https://www.luogu.com.cn/*",
+        "https://codeforces.com/*",
+        "https://atcoder.jp/*",
+        "https://acm.timus.ru/*"
+      ]
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "OI Submit"
+  },
+  "options_page": "src/options.html"
+}
