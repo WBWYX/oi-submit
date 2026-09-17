@@ -40,6 +40,12 @@
     <input type="text" id="lang-atcoder" placeholder="C++ 20" />
     <label for="lang-timus">Timus</label>
     <input type="text" id="lang-timus" placeholder="G++" />
+    <label for="lang-qoj">QOJ</label>
+    <input type="text" id="lang-qoj" placeholder="C++ 17" />
+    <label for="lang-nowcoder">牛客</label>
+    <input type="text" id="lang-nowcoder" placeholder="C++" />
+    <label for="lang-loj">LibreOJ</label>
+    <input type="text" id="lang-loj" placeholder="C++" />
 
     <h2>洛谷</h2>
     <div class="row"><input type="checkbox" id="o2" /><label for="o2" style="margin:0">默认开启 O2 优化</label></div>
@@ -52,6 +58,15 @@
       Timus 没有登录态，Judge ID 就是凭据，在
       <a href="https://acm.timus.ru/authedit.aspx" target="_blank" rel="noreferrer">作者信息页</a>
       能看到。只存在本机这个扩展里，不会发给任何人。
+    </p>
+
+    <h2>LibreOJ</h2>
+    <label for="loj-std">C++ 标准</label>
+    <input type="text" id="loj-std" placeholder="c++17" />
+    <p class="hint">
+      LOJ 把编译选项拆成了四个下拉，其中 <code>std</code> 的默认值是 <strong>c++11</strong>，比别家低一大截——
+      带 <code>auto</code> 返回值、结构化绑定的代码在洛谷交得好好的，到这儿直接 CE，
+      而人第一反应多半是去查自己的代码。留空表示不动页面上的选项。
     </p>
 
     <h2>提交方式</h2>

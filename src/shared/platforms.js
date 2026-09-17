@@ -12,6 +12,9 @@ export const DOMAINS = {
   codeforces: ['codeforces.com', 'm1.codeforces.com', 'm2.codeforces.com', 'm3.codeforces.com'],
   atcoder: ['atcoder.jp'],
   timus: ['acm.timus.ru'],
+  qoj: ['qoj.ac'],
+  nowcoder: ['ac.nowcoder.com'],
+  loj: ['loj.ac'],
 };
 
 export const PLATFORM_NAME = {
@@ -19,6 +22,9 @@ export const PLATFORM_NAME = {
   codeforces: 'Codeforces',
   atcoder: 'AtCoder',
   timus: 'Timus',
+  qoj: 'QOJ',
+  nowcoder: '牛客',
+  loj: 'LibreOJ',
 };
 
 /**
@@ -45,6 +51,11 @@ const CF_PROBLEMSET = /^\/problemset\/problem\/(\d+)\/(\w+)/;
 const AT_TASK = /^\/contests\/([\w-]+)\/tasks\/(\w+)/;
 const LUOGU_PROBLEM = /^\/problem\/([A-Za-z0-9_]+)/;
 const TIMUS_NUM = /[?&]num=(\d+)/;
+const QOJ_PROBLEM = /^\/problem\/(\d+)/;
+const QOJ_CONTEST = /^\/contest\/(\d+)\/problem\/(\d+)/;
+const NC_PROBLEM = /^\/acm\/problem\/(\d+)/;
+const NC_CONTEST = /^\/acm\/contest\/(\d+)\/([A-Za-z0-9]+)/;
+const LOJ_PROBLEM = /^\/p\/(\d+)/;
 
 /**
  * 题目链接 → 提交页链接 + 题目定位信息。
@@ -107,6 +118,66 @@ export function submitTarget(url) {
     };
   }
 
+  if (platform === 'qoj') {
+    /*
+     * QOJ（UOJ 系）没有独立提交页：提交表单就在题目页上，藏在一个 Bootstrap
+     * 标签页里（`#tab-submit-answer`）。
+     *
+     * **锚点不会把标签页打开**——uoj.js 里没有任何处理 location.hash 的代码，
+     * Bootstrap 的标签只认对 `[data-toggle="tab"]` 的点击。所以这里照样把锚点带上
+     * （链接本身是对的，人点开也能定位），但真正展开面板由内容脚本去点。
+     *
+     * 比赛题保持在比赛页提交：换到题库页交，那一发就不算进比赛了。
+     */
+    const contest = QOJ_CONTEST.exec(u.pathname);
+    if (contest) {
+      return {
+        platform,
+        submitUrl: `${u.origin}/contest/${contest[1]}/problem/${contest[2]}#tab-submit-answer`,
+        problemKey: contest[2],
+      };
+    }
+    const prob = QOJ_PROBLEM.exec(u.pathname);
+    if (!prob) return null;
+    return {
+      platform,
+      submitUrl: `${u.origin}/problem/${prob[1]}#tab-submit-answer`,
+      problemKey: prob[1],
+    };
+  }
+
+  if (platform === 'nowcoder') {
+    /*
+     * 牛客的题目页本身就是「终端」页：题面在左、代码编辑器在右，没有另一个提交页。
+     * 所以提交页就是题目页，原样打开。
+     */
+    const bank = NC_PROBLEM.exec(u.pathname);
+    if (bank) {
+      return {
+        platform,
+        submitUrl: `${u.origin}/acm/problem/${bank[1]}`,
+        problemKey: bank[1],
+      };
+    }
+    const contest = NC_CONTEST.exec(u.pathname);
+    if (!contest) return null;
+    return {
+      platform,
+      submitUrl: `${u.origin}/acm/contest/${contest[1]}/${contest[2]}`,
+      problemKey: `${contest[1]}-${contest[2].toUpperCase()}`,
+    };
+  }
+
+  if (platform === 'loj') {
+    const prob = LOJ_PROBLEM.exec(u.pathname);
+    if (!prob) return null;
+    return {
+      platform,
+      submitUrl: `${u.origin}/p/${prob[1]}/submit`,
+      problemKey: prob[1],
+    };
+  }
+
   // Timus：题目页是 problem.aspx?space=1&num=1297，提交页是独立的 submit.aspx
   const num = TIMUS_NUM.exec(u.search);
   if (!num) return null;
@@ -134,6 +205,17 @@ export const DEFAULT_LANGUAGE = {
   codeforces: 'GNU G++17',
   atcoder: 'C++ 20',
   timus: 'G++',
+  /*
+   * QOJ 的选项文本是 `C++ 17`（带空格），value 是 `C++17`（不带）。
+   * pickOption 归一化时会去掉空白，两种写法都能命中。
+   */
+  qoj: 'C++ 17',
+  nowcoder: 'C++',
+  /*
+   * LOJ 的语言下拉是 Semantic UI 的自绘控件，选项文本就是 `C++`；
+   * C++ 标准是另一个下拉（std），由 lojStandard 单独配。
+   */
+  loj: 'C++',
 };
 
 export const DEFAULT_SETTINGS = {
@@ -143,6 +225,15 @@ export const DEFAULT_SETTINGS = {
   enableO2: true,
   /** Timus 的 Judge ID 就是它的凭据，没有别的登录方式。 */
   timusJudgeId: '',
+  /**
+   * LOJ 专有：C++ 标准。
+   *
+   * LOJ 把编译选项拆成了四个下拉（compiler / std / O / m），其中只有 std 会影响
+   * 能不能编过——它的默认值是 **c++11**，比其他平台低一大截。带 `auto` 类型推导、
+   * 结构化绑定的代码在别处交得好好的，到这儿直接 CE。所以这一项单独可配。
+   * 留空表示不动页面上的选项。
+   */
+  lojStandard: 'c++17',
   /** 提交后是否盯着评测结果回传给 oi-bench。 */
   reportResult: true,
   /**

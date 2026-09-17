@@ -1,0 +1,370 @@
+
+<!DOCTYPE html>
+<!-- html version 1999 -->
+        
+    
+
+        
+<html>
+<head>
+        <meta charset="utf-8">
+    <meta http-equiv="content-language" content="zh-CN">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="google-site-verification" content="lFSmn0rlLR-OPkas5c2GxdhTKP4J4PyaahhQ2TNanjs"/>
+    <meta itemprop="image" content="https://static.nowcoder.com/acm/images-acm/res/logo/acm-logo.png"/>
+    <meta name="description"  content="牛客竞赛是专业的编程比赛和算法训练平台，包括ACM校赛、ICPC、CCPC、信息学奥赛、NOIP、NOI等编程比赛提高训练营。适合初级小白编程入门训练，包含NOIP普及组提高组赛前集训、ACM区域赛前多校训练营。" >
+    <meta name="keywords"  content="ACM,NOIP,CCPC,NOI,OI,ICPC,OJ,OJ,Virtual Judge,提高组,普及组,算法,编程比赛,程序设计,coding,在线编程,编程学习,训练,牛客竞赛" >
+        <title>Music Problem</title>
+        <meta name="nowcoder-uuid" content="REDACTED-FOR-FIXTURE"/>
+    
+
+<link rel="stylesheet" href="//static.nowcoder.com/acm/nowcoder/2.0.113/stylesheets-acm/v2lib/fontcustom/global/global.css" />
+<link rel="stylesheet" href="//static.nowcoder.com/acm/nowcoder/2.0.113/stylesheets-acm/v2lib/global/global.ui.css" />
+<link rel="stylesheet" href="//static.nowcoder.com/acm/nowcoder/2.0.113/stylesheets-acm/v2lib/base.css">
+<link rel="stylesheet" href="//static.nowcoder.com/acm/nowcoder/2.0.113/javascripts-acm/lib/common.css">
+<link rel="stylesheet" href="//static.nowcoder.com/acm/nowcoder/2.0.113/javascripts-acm/lib/env.css">
+<link rel="stylesheet" href="//static.nowcoder.com/acm/nowcoder/2.0.113/stylesheets-acm/element-ui.css">
+    <link rel="stylesheet" href="//static.nowcoder.com/acm/nowcoder/2.0.113/stylesheets-acm/v2lib/fontcustom/code/code.css">
+    <link rel="stylesheet" href="//static.nowcoder.com/acm/nowcoder/2.0.113/stylesheets-acm/v2/coding.css">
+    <link rel="stylesheet" href="//static.nowcoder.com/acm/nowcoder/2.0.113/javascripts-acm/page/terminal/code/main.entry.css">
+</head>
+
+<body class="full-screen-body">
+<div class="nk-container nk-acm-container">
+            <div class="header-bar">
+        <div class="header-left">
+            <div class="question-title">
+                <i class="icon-list"></i>Music Problem
+            </div>
+        </div>
+        <div class="header-right">
+            <ul class="code-list-box">
+                <li>
+                    <a title="题解" href="/acm/problem/blogs/13885" class="code-list-dis" target="_blank">
+                        <i class="icon-nc-edit"></i>
+                        题解
+                    </a>
+                </li>
+                <li>
+                    <a title="讨论" href="/discuss/tag/102929?type=101" class="code-list-dis" target="_blank">
+                        <i class="icon-comment"></i>
+                        讨论
+                    </a>
+                </li>
+                <li>
+                    <a title="查看他人的提交" href="/acm/problem/13885/submit-list" class="code-list-rank" target="_blank">
+                        <i class="icon-trophy"></i>
+                        查看他人的提交
+                    </a>
+                </li>
+                            </ul>
+                    </div>
+    </div>
+        <div class="content-board">
+        <div class="js-left question-module">
+            <div class="terminal-topic">
+    <div class="question-intr mb2 mt2">
+        <div class="subject-item-wrap">
+                            <span>题号：NC13885</span><br>
+                        <span>时间限制：C/C++/Rust/Pascal 2秒，其他语言4秒</span><br>
+            <span>空间限制：C/C++/Rust/Pascal 128 M，其他语言256 M</span><br>
+            <span> 64bit IO Format: %lld</span><br>
+        </div>
+    </div>
+
+    <h2 class="subject-item-title">题目描述
+        <a href="javascript:void(0);" class="icon-fullscreen js-full-question" title="只看题目描述"></a>
+        <a href="javascript:void(0);" class="icon-resize-small js-small-question" style="display:none;" title="收起全屏，编写代码"></a>
+    </h2>
+            <div class="subject-describe">
+            <div class="subject-question"><div> Listening to the music is relax, but for obsessive(强迫症), it may be unbearable. </div> <div> HH is an obsessive, he only start to listen to music at 12:00:00, and he will never stop unless the song he is listening ends at integral points (both minute and second are 0 ), that is, he can stop listen at 13:00:00 or 14:00:00,but he can't stop at 13:01:03 or 13:01:00, since 13:01:03 and 13:01：00 are not an integer hour time. </div> <div> Now give you the length of some songs, tell HH whether it's possible to choose some songs so he can stop listen at an integral point, or tell him it's impossible. </div> <div> Every song can be chosen at most once. </div></div>
+                            <h2 style="font-size:14px;font-weight:bold;color:#34495e;">输入描述:</h2>
+                                                    <pre><div> The first line contains an positive integer T(1≤T≤60), represents there are T test cases. </div><div> For each test case: </div><div> The first line contains an integer n(1≤n≤10<sup>5</sup>), indicating there are n songs. </div><div> The second line contains n integers a<sub>1</sub>,a<sub>2</sub>…a<sub>n</sub> (1≤a<sub>i</sub>≤10<sup>9</sup> ), the i<sup>th</sup> integer a<sub>i</sub> indicates the i<sup>th</sup> song lasts a<sub>i</sub> seconds.</div></pre>
+                                                                            <h2 style="font-size:14px;font-weight:bold;color:#34495e;">输出描述:</h2>
+                                                    <pre>For each test case, output one line &quot;YES&quot; (without quotes) if HH is possible to stop listen at an integral point, and &quot;NO&quot; (without quotes) otherwise.</pre>
+                                                                            <div class="question-oi">
+                        <div class="question-oi-hd">
+                            示例1
+                        </div>
+                        <div class="question-oi-bd">
+                            <div class="question-oi-mod">
+                                <h2>输入</h2>
+                                <a class="code-copy-btn js-clipboard" href="javascript:void(0);" data-clipboard-text-id="input1">复制</a>
+                                <textarea data-clipboard-text-id="input1" style="display:none;">3
+3
+2000 1000 3000
+3
+2000 3000 1600
+2
+5400 1800</textarea>
+                                <div class="question-oi-cont">
+                                    <pre>3
+3
+2000 1000 3000
+3
+2000 3000 1600
+2
+5400 1800</pre>
+                                </div>
+                            </div>
+                            <div class="question-oi-mod">
+                                                                    <h2>输出</h2>
+                                                                <a class="code-copy-btn js-clipboard" href="javascript:void(0);" data-clipboard-text-id="output1">复制</a>
+                                <textarea data-clipboard-text-id="output1" style="display:none;">NO
+YES
+YES</textarea>
+                                <div class="question-oi-cont">
+                                    <pre>NO
+YES
+YES</pre>
+                                </div>
+                            </div>
+                                                            <div class="question-oi-mod">
+                                    <h2>说明</h2>
+                                    <div class="question-oi-cont">
+                                        <pre>In the first example it's impossible to stop at an integral point.<br>In the second example if we choose the first and the third songs, they cost 3600 seconds in total, so HH can stop at 13:00:00<br>In the third example if we choose the first and the second songs, they cost 7200 seconds in total, so HH can stop at 14:00:00</pre>
+                                    </div>
+                                </div>
+                                                    </div>
+                    </div>
+                                                </div>
+    </div>
+            <div class="topic-popup js-topic-menu" style="display:none;">
+                <div class="terminal-topic-wrap">
+                    <div class="terminal-topic-title">
+                        <i class="icon-list"></i>Music Problem
+                    </div>
+                    <div class="topic-popup-bd">
+                        <a href="?page=" class="back-to-all"><i class="icon-angle-left"></i>返回全部题目</a>
+                        <div class="topic-title-list">
+                            <h2></h2>
+                            <div class="js-list" style="overflow-y:auto;">
+                                <div class="js-list-tips">列表加载中...</div>
+                                <div class="js-ul-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="jsVerticalSeparator" class="module-separator vertical"></div>
+                <div class="js-right answer-module" id="jsCodeEditor"></div>
+    </div>
+
+
+</div>
+
+        <textarea id="javaTpl" style="display:none;"></textarea>
+    <textarea id="cTpl" style="display:none;"></textarea>
+
+            <textarea id="pythonTpl" style="display:none;">
+         
+        </textarea>
+         
+                 <textarea id="cSharpTpl" style="display:none;">
+         
+        </textarea>
+         
+                 <textarea id="jsTpl" style="display:none;">
+         
+        </textarea>
+         
+                 <textarea id="phpTpl" style="display:none;">
+         
+        </textarea>
+         
+                 <textarea id="jsV8Tpl" style="display:none;">
+         
+        </textarea>
+         
+                      <textarea id="python3Tpl" style="display:none;">
+              
+             </textarea>
+         
+                      <textarea id="goTpl" style="display:none;">
+              
+             </textarea>
+         
+                       <textarea id="purecTpl" style="display:none;">
+              
+              </textarea>
+         
+             <textarea id="rubyTpl" style="display:none;">
+          
+         </textarea>
+     
+             <textarea id="scalaTpl" style="display:none;">
+          
+         </textarea>
+     
+             <textarea id="kotlinTpl" style="display:none;">
+          
+         </textarea>
+     
+             <textarea id="groovyTpl" style="display:none;">
+          
+         </textarea>
+     
+             <textarea id="tsTpl" style="display:none;">
+          
+         </textarea>
+     
+             <textarea id="swiftTpl" style="display:none;">
+          
+         </textarea>
+     
+             <textarea id="rustTpl" style="display:none;">
+          
+         </textarea>
+     
+        
+        
+
+                    <div class="js-sample-io" style="display:none;">
+            <textarea data-type="input">3
+3
+2000 1000 3000
+3
+2000 3000 1600
+2
+5400 1800</textarea>
+            <textarea data-type="output">NO
+YES
+YES</textarea>
+        </div>
+            
+<script type="text/javascript">
+window.codeJudgeType = '0';
+window.supportLang = 'java,cpp';
+window.supportSelfTest =  true ;
+//前端根据codeJudgeType直接判断了，这个参数暂时没有用
+window.isVOJProblem = 'false';
+</script>
+
+    
+<script>
+        window.isLogin = false;
+        window.globalInfo = {
+        canLoadInIframe: 'true'
+    };
+            window.useNeteaseCaptcha = true;
+        window.globalInfo.isAcmCompleteInfo = false;
+        window.globalInfo.isAcmSuperAdmin = false;
+    window.globalInfo.acmUserPlanType = 2;
+    window.globalInfo.hasAcmUserPlanType = false;
+    window.showCodeCompleteV2 = true;
+</script>
+
+<script type="text/javascript">
+window.ncDeployImageRoot = "//static.nowcoder.com/acm";
+window.ncJsInDev =  false ;
+window.ncJsInPre = false;
+window.ncJsVersion = "1.03.12";
+window.ncJsPluginVersion = "1.0.17";
+window.ncIsInNowcoderMainSite = true;
+</script>
+
+<script type="text/javascript">
+(function () {
+var oBody = document.body;
+var sOverflow = oBody.style.overflow;
+var sUa = (window.navigator || {}).userAgent || '';
+var m = sUa.match(/MSIE ([^;]*)|Trident.*; rv(?:\s|:)?([0-9.]+)/) || [];
+var nVersion = +m[1] || +m[2] || 0;
+nVersion && nVersion <= 8 && _fShowMask();
+
+function _fShowMask() {
+    oBody.style.overflow = 'hidden';
+    var nWidth = window.document.documentElement.clientWidth;
+    var nHeight = window.document.documentElement.clientHeight;
+    var nTop = ('pageYOffset' in window ? window.pageYOffset : document.documentElement.scrollTop) || 0;
+    var sHtml = [
+    '<div style="position:absolute;left:0;top:' + nTop + 'px;z-index:99999;width:' + nWidth + 'px;height:' + nHeight + 'px;">',
+        '<div style="position:absolute;left:0;top:0;width:100%;height:100%;background:#000;opacity:0.5;filter:alpha(opacity=50);"></div>',
+        '<div class="pop-box" style="width:800px;z-index:100000;left:' + (nWidth - 800) / 2 + 'px;top:' + Math.max(0, (nHeight - 624) / 2) + nTop + 'px;">',
+            '<div class="pop-title"><h1>浏览器版本过低提示</h1><a href="javascript:void(0);" onclick="closeIE8GlobalMask()" class="pop-close" title="关闭"></a></div>',
+            '<div class="pop-content clearfix">',
+                '<div class="pop-subject-tips-wrapper">',
+                    '<a href="javascript:void(0);"><img src="//static.nowcoder.com/fe/style/images/common/res/tips/13.png"></a>',
+                    '<div class="pop-exit-main">你使用的浏览器版本过低，无法正常访问牛客<br />请使用牛客APP或更换浏览器。</div>',
+                    '<div class="pop-download-browser">',
+                        '<ul class="pop-browser-list">',
+                            '<li><p>下载牛客APP</p><div class="pic"><img src="https://uploadfiles.nowcoder.com/app/app_download.png"></div></li>',
+                            '<li><a href="https://static.nowcoder.com/b/i/googlechrome74_32.exe" target="_blank"><p>下载Chrome浏览器</p><div class="pic"><img src="//static.nowcoder.com/images/res/browser/chrome.png"></div></a></li>',
+                            '<li><a href="https://www.firefox.com.cn/download/#more" target="_blank"><p>下载Firefox浏览器</p><div class="pic"><img src="//static.nowcoder.com/images/res/browser/firefox.png"></div></a></li>',
+                        '</ul>',
+                        '<a href="javascript:void(0);" onclick="closeIE8GlobalMask()" class="link-green">我知道访问会出错，但是我还要继续用这个浏览器浏览 &gt;&gt;</a>',
+                    '</div>',
+                '</div>',
+            '</div>',
+        '</div>',
+    '</div>'].join('');
+    var oDv = document.createElement('div');
+    oDv.innerHTML = sHtml;
+    oBody.appendChild(oDv);
+    window.closeIE8GlobalMask = function () {
+        oBody.removeChild(oDv);
+        oBody.style.overflow = sOverflow;
+        _fShowBar();
+    };
+}
+
+function _fShowBar() {
+    var oDv = document.createElement('div');
+    oDv.innerHTML = '<div class="tip-block-box" onclick="closeIE8GlobalBar()" style="position:fixed;left:0;top:54px;width:100%;z-index:99999;"><div class="tip-block">你使用的浏览器版本过低，无法正常访问牛客，请使用牛客APP或更换浏览器，<a href="javascript:void(0);">点击查看详情</a>。</div></div>';
+    oBody.appendChild(oDv);
+    window.closeIE8GlobalBar  = function () {
+        oBody.removeChild(oDv);
+        _fShowMask();
+    };
+}
+})();
+</script>
+
+<script crossorigin="anonymous" src="//static.nowcoder.com/acm/nowcoder/2.0.113/javascripts-acm/lib/vendor.dll.js" type="text/javascript"></script>
+                <script crossorigin="anonymous" src="//static.nowcoder.com/acm/nowcoder/2.0.113/javascripts-acm/lib/runtime.js" type="text/javascript"></script>
+<script crossorigin="anonymous" src="//static.nowcoder.com/acm/nowcoder/2.0.113/javascripts-acm/lib/common.js" type="text/javascript"></script>
+<script crossorigin="anonymous" src="//static.nowcoder.com/acm/nowcoder/2.0.113/javascripts-acm/lib/env.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?a808a1326b6c06c437de769d1b85b870";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+
+(function () {
+!function(e,t,n,g,i){e[i]=e[i]||function(){(e[i].q=e[i].q||[]).push(arguments)},n=t.createElement("script"),tag=t.getElementsByTagName("script")[0],n.async=1,n.src=('https:'==document.location.protocol?'https://':'http://')+g,tag.parentNode.insertBefore(n,tag)}(window,document,"script","assets.growingio.com/2.1/gio.js","gio");
+  gio('init', 'c196c3667d214851b11233f5c17f99d5', {});
+  gio('config',  {host : 'grow.nowcoder.com'});
+
+      gio('clearUserId');
+  
+
+  gio('send');
+})();
+
+</script>
+
+<script type="text/javascript">
+    window.pageInfo = {
+    isPdfContent: false,
+            creatorId: '301599',
+        questionId: '126116',
+        problemId: '13885',
+            uuid: '7d1948ec26b5429c82f3a4cf48784612',
+                        tagId: '4', //定制
+        subTagId: '0', //定制
+        doneQuestionId: '13885', //定制
+        selfType: '8', //定制自测
+
+            codeJudgeType: '0',
+        supportLang: 'java,cpp'
+                 // 用户模板代码（JSON格式，key为语言ID，value为代码模板，仅对战页面注入）
+    };
+</script>
+<script type="text/javascript" crossorigin="anonymous" src="//static.nowcoder.com/acm/nowcoder/2.0.113/javascripts-acm/page/terminal/code/main.entry.js"></script>
+</body>
+</html>

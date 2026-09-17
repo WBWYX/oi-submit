@@ -117,6 +117,11 @@ async function handleSubmitRequest(data) {
     sourceCode,
     language,
     enableO2,
+    /*
+     * LOJ 的 C++ 标准默认是 c++11，比别家低一大截，带 auto / 结构化绑定的代码
+     * 到那边直接 CE。所以单独带上这一项，让内容脚本去把标准下拉摆正。
+     */
+    lojStandard: target.platform === 'loj' ? cfg.lojStandard : '',
     judgeId: target.platform === 'timus' ? cfg.timusJudgeId : '',
     reportResult: cfg.reportResult,
     manualSubmit: cfg.manualSubmit,

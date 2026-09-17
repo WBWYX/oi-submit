@@ -10,16 +10,22 @@
  *   watch —— 在结果页上盯评测结论，逐次回传，直到终态
  *
  * 两个阶段通常发生在**两次不同的页面加载**里（提交会跳转），所以阶段存在后台的
- * session 存储里，而不是这个脚本的变量里。洛谷是例外：它是 SPA，提交后不一定重新
- * 加载页面，所以填完之后本脚本会自己接着盯下去。
+ * session 存储里，而不是这个脚本的变量里。
+ *
+ * **洛谷、LOJ、牛客是例外**：它们是 SPA（或干脆就地提交不跳转），提交后内容脚本
+ * 不会重跑，所以填完之后本脚本自己留在同一个文档里接着盯结果——见下面 watchHere
+ * 那一段。这也是 isResultPage() 对这三家返回「当前页就是结果页」的原因。
  */
 
 import * as luogu from './luogu.js';
 import * as codeforces from './codeforces.js';
 import * as atcoder from './atcoder.js';
 import * as timus from './timus.js';
+import * as qoj from './qoj.js';
+import * as nowcoder from './nowcoder.js';
+import * as loj from './loj.js';
 
-const SUBMITTERS = { luogu, codeforces, atcoder, timus };
+const SUBMITTERS = { luogu, codeforces, atcoder, timus, qoj, nowcoder, loj };
 
 const send = (msg) => chrome.runtime.sendMessage(msg).catch(() => undefined);
 

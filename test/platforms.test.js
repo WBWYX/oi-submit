@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pickOption, platformOf, submitTarget } from '../src/shared/platforms.js';
+import { DEFAULT_LANGUAGE, pickOption, platformOf, submitTarget } from '../src/shared/platforms.js';
 
 /**
  * 纯逻辑的验收：链接识别、提交页构造、语言匹配。
@@ -123,4 +123,65 @@ test('AtCoder 那种每场比赛不同的编号不影响文本匹配', () => {
   const contestB = [{ value: '5028', text: 'C++ 20 (gcc 12.2)' }];
   assert.equal(pickOption(contestA, 'C++ 20').value, '6017');
   assert.equal(pickOption(contestB, 'C++ 20').value, '5028');
+});
+
+/* ─────────────────── QOJ / 牛客 / LibreOJ ─────────────────── */
+
+test('QOJ：提交表单在题目页的标签页里，锚点带上但不靠它展开', () => {
+  const t = submitTarget('https://qoj.ac/problem/1000');
+  assert.equal(t.platform, 'qoj');
+  assert.equal(t.submitUrl, 'https://qoj.ac/problem/1000#tab-submit-answer');
+  assert.equal(t.problemKey, '1000');
+});
+
+test('QOJ：比赛题留在比赛页提交，不改去题库页', () => {
+  /*
+   * 换到题库页交，那一发就不算进比赛了——这种错误交完当场看不出来，
+   * 要等排行榜上少了一题才会发现。
+   */
+  const t = submitTarget('https://qoj.ac/contest/1234/problem/5678');
+  assert.equal(t.submitUrl, 'https://qoj.ac/contest/1234/problem/5678#tab-submit-answer');
+  assert.equal(t.problemKey, '5678');
+});
+
+test('牛客：题目页本身就是提交页', () => {
+  const t = submitTarget('https://ac.nowcoder.com/acm/problem/13885');
+  assert.equal(t.platform, 'nowcoder');
+  assert.equal(t.submitUrl, 'https://ac.nowcoder.com/acm/problem/13885');
+  assert.equal(t.problemKey, '13885');
+});
+
+test('牛客：比赛题用「赛事-序号」定位', () => {
+  const t = submitTarget('https://ac.nowcoder.com/acm/contest/98765/d');
+  assert.equal(t.submitUrl, 'https://ac.nowcoder.com/acm/contest/98765/d');
+  assert.equal(t.problemKey, '98765-D');
+});
+
+test('LibreOJ：/p/<题号> → /p/<题号>/submit', () => {
+  const t = submitTarget('https://loj.ac/p/10000');
+  assert.equal(t.platform, 'loj');
+  assert.equal(t.submitUrl, 'https://loj.ac/p/10000/submit');
+  assert.equal(t.problemKey, '10000');
+});
+
+test('三家的非题目页一律返回 null，绝不猜', () => {
+  // 猜出来的提交页会让浏览器打开一个不对的页面，然后填表等元素等到超时，
+  // 而人看到的只是浏览器莫名跳了一下
+  assert.equal(submitTarget('https://qoj.ac/problems'), null);
+  assert.equal(submitTarget('https://qoj.ac/contest/1234'), null);
+  assert.equal(submitTarget('https://ac.nowcoder.com/acm/contest/98765'), null);
+  assert.equal(submitTarget('https://loj.ac/problems'), null);
+});
+
+test('新加的三家都有默认语言，否则提交时会用页面上次的选项', () => {
+  for (const p of ['qoj', 'nowcoder', 'loj']) {
+    assert.ok(DEFAULT_LANGUAGE[p], `${p} 没有默认语言`);
+  }
+  // QOJ 的选项文本是 "C++ 17"、value 是 "C++17"，归一化后两种写法都该命中
+  const options = [
+    { value: 'C++14', text: 'C++ 14' },
+    { value: 'C++17', text: 'C++ 17' },
+  ];
+  assert.equal(pickOption(options, DEFAULT_LANGUAGE.qoj)?.value, 'C++17');
+  assert.equal(pickOption(options, 'C++17')?.value, 'C++17');
 });

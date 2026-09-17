@@ -21,13 +21,20 @@ export function endsWithNewline(text) {
   return normalized.endsWith('\n') ? normalized : `${normalized}\n`;
 }
 
-/** 样例小节。与 oi-bench 的提取器同一套写法，见文件头。 */
-export function sampleSections(samples) {
+/**
+ * 样例小节。与 oi-bench 的提取器同一套写法，见文件头。
+ *
+ * `startNumber` 用于**一次只输出一个样例**的场合：LOJ 的样例是被正文按下标引用的，
+ * 得一节一节地插到各自的位置上，这时编号不能每次都从 1 重新开始——那样一份三组
+ * 样例的题面里会出现三个「样例 #1」，而 oi-bench 导入时按标题去重，结果只剩一组。
+ */
+export function sampleSections(samples, startNumber = 1) {
   const parts = [];
   samples.forEach((s, i) => {
-    parts.push(`## 样例 #${i + 1}`, '');
-    parts.push(`### 样例输入 #${i + 1}`, '', '```', s.input.trimEnd(), '```', '');
-    parts.push(`### 样例输出 #${i + 1}`, '', '```', s.output.trimEnd(), '```', '');
+    const n = startNumber + i;
+    parts.push(`## 样例 #${n}`, '');
+    parts.push(`### 样例输入 #${n}`, '', '```', s.input.trimEnd(), '```', '');
+    parts.push(`### 样例输出 #${n}`, '', '```', s.output.trimEnd(), '```', '');
   });
   return parts;
 }

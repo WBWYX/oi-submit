@@ -23,6 +23,9 @@ import { parseLuogu } from './luogu.js';
 import { parseCodeforces } from './codeforces.js';
 import { parseAtCoder } from './atcoder.js';
 import { parseTimus } from './timus.js';
+import { parseQoj } from './qoj.js';
+import { parseNowcoder } from './nowcoder.js';
+import { parseLoj } from './loj.js';
 
 /**
  * 认出链接属于哪道题。认不出返回 null——**绝不猜**：猜错的后果是抓回一份
@@ -56,10 +59,38 @@ export function identifyUrl(raw) {
     const m = /[?&]num=(\d+)/.exec(url.search);
     return m?.[1] ? { platform: 'timus', problemKey: m[1] } : null;
   }
+  if (host === 'qoj.ac' || host === 'www.qoj.ac') {
+    /*
+     * 比赛题的链接是 /contest/<cid>/problem/<pid>，而那个 <pid> 就是题库里的题号——
+     * 两条路径取到的是同一道题，所以都归一到 /problem/<pid> 去抓。
+     */
+    const contest = /\/contest\/\d+\/problem\/(\d+)/.exec(url.pathname);
+    if (contest?.[1]) return { platform: 'qoj', problemKey: contest[1] };
+    const m = /\/problem\/(\d+)/.exec(url.pathname);
+    return m?.[1] ? { platform: 'qoj', problemKey: m[1] } : null;
+  }
+  if (host === 'ac.nowcoder.com') {
+    // 题库题：/acm/problem/13885
+    const bank = /\/acm\/problem\/(\d+)/.exec(url.pathname);
+    if (bank?.[1]) return { platform: 'nowcoder', problemKey: bank[1] };
+    /*
+     * 比赛题：/acm/contest/<cid>/<index>。题号在页面上才有，链接里没有，
+     * 所以 key 用 `<cid>-<index>` 这个能唯一定位、且能反推回链接的形式。
+     * 同步适配器用的是页面上的 NC 号，两边对不上——**这是已知的**：
+     * 抓题面只需要定位到页面，不需要与提交记录对账。
+     */
+    const contest = /\/acm\/contest\/(\d+)\/([A-Za-z0-9]+)/.exec(url.pathname);
+    if (contest) return { platform: 'nowcoder', problemKey: `${contest[1]}-${contest[2].toUpperCase()}` };
+    return null;
+  }
+  if (host === 'loj.ac' || host === 'www.loj.ac') {
+    const m = /\/p\/(\d+)/.exec(url.pathname);
+    return m?.[1] ? { platform: 'loj', problemKey: m[1] } : null;
+  }
   return null;
 }
 
-const SUPPORTED = '洛谷、Codeforces、AtCoder、Timus';
+const SUPPORTED = '洛谷、Codeforces、AtCoder、Timus、QOJ、牛客、LibreOJ';
 
 export async function fetchStatement(rawUrl) {
   const id = identifyUrl(rawUrl);
@@ -76,6 +107,18 @@ export async function fetchStatement(rawUrl) {
       return assertSize(parseCodeforces(await getHtml(rawUrl), id.problemKey, rawUrl));
     case 'atcoder':
       return assertSize(parseAtCoder(await getHtml(rawUrl), id.problemKey, rawUrl));
+    case 'qoj':
+      /*
+       * 一律走题库页而不是原链接：比赛题的 /contest/<cid>/problem/<pid> 在比赛
+       * 结束前可能看不到题面，而题库页 /problem/<pid> 是同一道题的常驻位置。
+       */
+      return assertSize(
+        parseQoj(await getHtml(`https://qoj.ac/problem/${id.problemKey}`), id.problemKey, rawUrl),
+      );
+    case 'nowcoder':
+      return assertSize(parseNowcoder(await getHtml(rawUrl), id.problemKey, rawUrl));
+    case 'loj':
+      return assertSize(await fetchLoj(id.problemKey, rawUrl));
     default:
       return assertSize(
         parseTimus(
@@ -123,6 +166,40 @@ async function fetchLuogu(pid, url) {
     );
   }
   return parseLuogu(await res.json(), pid, url);
+}
+
+/**
+ * LOJ 走它自己的 JSON 接口，**而且是另一个域名**。
+ *
+ * `loj.ac/api/...` 只会拿回 SPA 的 HTML 外壳，数据接口在 `api.loj.ac`
+ * （前端把它写死在 `window.apiEndpoint` 里）。这一条在 icpc-workbench 的
+ * `adapters/loj.ts` 里也踩过并记着，搬到这边同样适用。
+ *
+ * 接口对匿名可读的题直接返回内容，不需要登录；不公开的题返回
+ * `{ error: 'PERMISSION_DENIED' }` 而**状态码是 201**——所以不能只看 HTTP 状态，
+ * 判断交给 parseLoj。
+ */
+async function fetchLoj(displayId, url) {
+  const res = await fetch('https://api.loj.ac/api/problem/getProblem', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      displayId: Number(displayId),
+      localizedContentsOfLocale: 'zh_CN',
+      samples: true,
+      judgeInfo: true,
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!res.ok && res.status !== 201) {
+    throw new StatementError(502, `LOJ 接口返回 HTTP ${res.status}`);
+  }
+  const type = res.headers.get('content-type') ?? '';
+  if (!type.includes('json')) {
+    throw new StatementError(502, `LOJ 接口返回的不是 JSON 而是 ${type.split(';')[0] || '未知类型'}`);
+  }
+  return parseLoj(await res.json(), displayId, url);
 }
 
 async function getHtml(url) {

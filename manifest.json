@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "OI Submit",
   "version": "0.1.0",
-  "description": "把 OI Bench 里的代码提交到洛谷 / Codeforces / AtCoder / Timus，可选语言与 O2，回传评测结果，并按链接抓取题面。",
+  "description": "把 OI Bench 里的代码提交到洛谷 / Codeforces / AtCoder / Timus / QOJ / 牛客 / LibreOJ，可选语言与 O2，回传评测结果，并按链接抓取题面。",
   "permissions": [
     "storage",
     "tabs"
@@ -11,7 +11,11 @@
     "https://www.luogu.com.cn/*",
     "https://codeforces.com/*",
     "https://atcoder.jp/*",
-    "https://acm.timus.ru/*"
+    "https://acm.timus.ru/*",
+    "https://qoj.ac/*",
+    "https://ac.nowcoder.com/*",
+    "https://loj.ac/*",
+    "https://api.loj.ac/*"
   ],
   "background": {
     "service_worker": "src/background.js",
@@ -23,7 +27,10 @@
         "https://www.luogu.com.cn/*",
         "https://codeforces.com/*",
         "https://atcoder.jp/*",
-        "https://acm.timus.ru/*"
+        "https://acm.timus.ru/*",
+        "https://qoj.ac/*",
+        "https://ac.nowcoder.com/*",
+        "https://loj.ac/*"
       ],
       "js": [
         "src/content-loader.js"
@@ -42,7 +49,10 @@
         "https://www.luogu.com.cn/*",
         "https://codeforces.com/*",
         "https://atcoder.jp/*",
-        "https://acm.timus.ru/*"
+        "https://acm.timus.ru/*",
+        "https://qoj.ac/*",
+        "https://ac.nowcoder.com/*",
+        "https://loj.ac/*"
       ]
     }
   ],

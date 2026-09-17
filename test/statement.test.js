@@ -8,6 +8,9 @@ import { parseCodeforces } from '../src/shared/statement/codeforces.js';
 import { parseAtCoder } from '../src/shared/statement/atcoder.js';
 import { parseTimus } from '../src/shared/statement/timus.js';
 import { parseLuogu } from '../src/shared/statement/luogu.js';
+import { parseQoj } from '../src/shared/statement/qoj.js';
+import { parseNowcoder } from '../src/shared/statement/nowcoder.js';
+import { parseLoj } from '../src/shared/statement/loj.js';
 import { sliceClass } from '../src/shared/statement/html.js';
 
 /**
@@ -27,8 +30,13 @@ const fixture = (name) => readFileSync(join(here, 'fixtures', name), 'utf8');
 const CF_URL = 'https://codeforces.com/contest/3/problem/B';
 const AT_URL = 'https://atcoder.jp/contests/abc475/tasks/abc475_c';
 const TIMUS_URL = 'https://acm.timus.ru/problem.aspx?space=1&num=1297';
+const QOJ_URL = 'https://qoj.ac/problem/1000';
+const NC_URL = 'https://ac.nowcoder.com/acm/problem/13885';
+const LOJ_URL = 'https://loj.ac/p/10000';
 
-test('identifyUrl 认出四个平台的题目链接', () => {
+const lojFixture = () => JSON.parse(fixture('loj-10000.json'));
+
+test('identifyUrl 认出七个平台的题目链接', () => {
   assert.deepEqual(identifyUrl('https://www.luogu.com.cn/problem/P3538'), {
     platform: 'luogu',
     problemKey: 'P3538',
@@ -52,6 +60,19 @@ test('identifyUrl 认出四个平台的题目链接', () => {
   });
   assert.deepEqual(identifyUrl(AT_URL), { platform: 'atcoder', problemKey: 'abc475_c' });
   assert.deepEqual(identifyUrl(TIMUS_URL), { platform: 'timus', problemKey: '1297' });
+  assert.deepEqual(identifyUrl(QOJ_URL), { platform: 'qoj', problemKey: '1000' });
+  // QOJ 比赛题里的题号就是题库题号，归一到同一道题
+  assert.deepEqual(identifyUrl('https://qoj.ac/contest/1234/problem/5678'), {
+    platform: 'qoj',
+    problemKey: '5678',
+  });
+  assert.deepEqual(identifyUrl(NC_URL), { platform: 'nowcoder', problemKey: '13885' });
+  // 牛客比赛题的题号只在页面上有，链接里没有，用「赛事-序号」定位
+  assert.deepEqual(identifyUrl('https://ac.nowcoder.com/acm/contest/98765/d'), {
+    platform: 'nowcoder',
+    problemKey: '98765-D',
+  });
+  assert.deepEqual(identifyUrl(LOJ_URL), { platform: 'loj', problemKey: '10000' });
 });
 
 test('identifyUrl 认不出来就返回 null，绝不猜', () => {
@@ -211,11 +232,14 @@ test('洛谷：结构里没有题面内容时报错', () => {
 
 /* ────────────────────────── 通用约定 ────────────────────────── */
 
-test('四家都带 front matter，且含时限与空间', () => {
+test('各平台都带 front matter，且含时限与空间', () => {
   const all = [
     parseCodeforces(fixture('cf-3B.html'), '3B', CF_URL),
     parseAtCoder(fixture('atcoder-abc475_c.html'), 'abc475_c', AT_URL),
     parseTimus(fixture('timus-1297.html'), '1297', TIMUS_URL),
+    parseQoj(fixture('qoj-1000.html'), '1000', QOJ_URL),
+    parseNowcoder(fixture('nowcoder-13885.html'), '13885', NC_URL),
+    parseLoj(lojFixture(), '10000', LOJ_URL),
   ];
   for (const s of all) {
     assert.ok(s.markdown.startsWith('---\n'), `${s.platform} 没有 front matter`);
@@ -241,6 +265,9 @@ test('样例内容与 Markdown 里的代码块一致', () => {
     parseAtCoder(fixture('atcoder-abc475_c.html'), 'abc475_c', AT_URL),
     parseCodeforces(fixture('cf-3B.html'), '3B', CF_URL),
     parseTimus(fixture('timus-1297.html'), '1297', TIMUS_URL),
+    parseQoj(fixture('qoj-1000.html'), '1000', QOJ_URL),
+    parseNowcoder(fixture('nowcoder-13885.html'), '13885', NC_URL),
+    parseLoj(lojFixture(), '10000', LOJ_URL),
   ];
   for (const s of all) {
     for (const [i, sample] of s.samples.entries()) {
@@ -248,6 +275,205 @@ test('样例内容与 Markdown 里的代码块一致', () => {
       assert.ok(s.markdown.includes(block), `${s.platform} 样例 ${i + 1} 的输入块与返回值对不上`);
     }
   }
+});
+
+/* ──────────────────────── QOJ ──────────────────────── */
+
+test('QOJ：标题取 page-header，不能取页头的站名', () => {
+  /*
+   * 页面上第一个 <h1> 是站名 "QOJ.ac"（页头里），题目标题在后面那个
+   * class="page-header" 的 h1 里。取「第一个 h1」会得到 QOJ.ac——
+   * 和 Timus 提交时点中页头搜索按钮是同一类错误：页头的东西总排在前面。
+   */
+  const s = parseQoj(fixture('qoj-1000.html'), '1000', QOJ_URL);
+  assert.equal(s.title, '边三连通分量');
+  assert.equal(s.timeLimitMs, 5000);
+  assert.equal(s.memoryLimitMb, 512);
+});
+
+test('QOJ：按 Input N / Output N 的编号配对样例', () => {
+  const s = parseQoj(fixture('qoj-1000.html'), '1000', QOJ_URL);
+  assert.equal(s.samples.length, 2);
+  assert.equal(s.samples[0].input, '4 5\n0 2\n0 1\n3 0\n2 1\n2 3\n');
+  assert.equal(s.samples[0].output, '3\n2 0 2\n1 1\n1 3\n');
+  // 第二组要配对到自己的输出，不能错位拿到下一组的输入
+  assert.ok(s.samples[1].input.startsWith('13 21\n'));
+  assert.ok(s.samples[1].output.startsWith('6\n'));
+});
+
+test('QOJ：第一个 h2 之前的引言不占用「题目描述」这个节名', () => {
+  /*
+   * QOJ 题面开头常有一行 `Source: Library Checker`，真正的描述在
+   * <h2>Statement</h2> 里。两处都扣「## 题目描述」的话，一份题面里会有两个同名
+   * 小节，下游按节名取内容时拿到的是那行来源说明。
+   */
+  const s = parseQoj(fixture('qoj-1000.html'), '1000', QOJ_URL);
+  const count = s.markdown.split('## 题目描述').length - 1;
+  assert.equal(count, 1, `「## 题目描述」出现了 ${count} 次`);
+  assert.ok(s.markdown.includes('Source: Library Checker'));
+});
+
+test('QOJ：正文里不重复出现样例', () => {
+  const s = parseQoj(fixture('qoj-1000.html'), '1000', QOJ_URL);
+  const first = s.samples[0].input.trim();
+  const occurrences = s.markdown.split(first).length - 1;
+  assert.equal(occurrences, 1, `样例内容在 Markdown 里出现了 ${occurrences} 次`);
+});
+
+test('QOJ：限制只在 badge 里找，不被内联脚本抢答', () => {
+  /*
+   * stripTags 去掉的是标签，<script> 的函数体会原样留在文本里。QOJ 页面上内联
+   * 脚本很多，在整页文本上跑正则的话，脚本里任何一处 `Time Limit:` 都能抢先命中。
+   */
+  const html =
+    '<script>var tip = "Time Limit: 999 s, Memory Limit: 1 MB";</script>' +
+    '<h1 class="page-header">#7. 假题</h1>' +
+    '<span class="badge badge-secondary">Time Limit:\t2 s\t</span>' +
+    '<span class="badge badge-secondary">Memory Limit:\t256 MB\t</span>' +
+    '<article class="uoj-article"><p>正文</p></article>';
+  const s = parseQoj(html, '7', 'https://qoj.ac/problem/7');
+  assert.equal(s.timeLimitMs, 2000);
+  assert.equal(s.memoryLimitMb, 256);
+});
+
+test('QOJ：没有正文时报「可能要登录」，不返回空题面', () => {
+  const html = '<h1 class="page-header">#9. 私有题</h1>';
+  assert.throws(() => parseQoj(html, '9', 'https://qoj.ac/problem/9'), /登录/);
+});
+
+/* ──────────────────────── 牛客 ──────────────────────── */
+
+test('牛客：限制取 C/C++ 那一档，不是「其他语言」', () => {
+  /*
+   * 页面写的是「时间限制：C/C++/Rust/Pascal 2秒，其他语言4秒」。取到 4 秒的话，
+   * 本地按放宽一倍的时限判，过了交上去 TLE——而且没有任何地方会提示哪里不对。
+   */
+  const s = parseNowcoder(fixture('nowcoder-13885.html'), '13885', NC_URL);
+  assert.equal(s.title, 'Music Problem');
+  assert.equal(s.timeLimitMs, 2000);
+  assert.equal(s.memoryLimitMb, 128);
+});
+
+test('牛客：样例取隐藏 textarea 的原文，换行不丢', () => {
+  const s = parseNowcoder(fixture('nowcoder-13885.html'), '13885', NC_URL);
+  assert.equal(s.samples.length, 1);
+  assert.equal(s.samples[0].input, '3\n3\n2000 1000 3000\n3\n2000 3000 1600\n2\n5400 1800\n');
+  assert.equal(s.samples[0].output, 'NO\nYES\nYES\n');
+});
+
+test('牛客：题目描述不能把输入输出和样例一起吞进来', () => {
+  /*
+   * subject-describe 听着像「描述」，实际上它把输入描述、输出描述、示例块全包着
+   * （实测这道题：describe 4067 字，subject-question 699 字）。用错的话整篇题面
+   * 会挤进「## 题目描述」，后面输入/输出格式各自又出现一遍，同一段存两份。
+   */
+  const s = parseNowcoder(fixture('nowcoder-13885.html'), '13885', NC_URL);
+  const description = s.markdown.slice(
+    s.markdown.indexOf('## 题目描述'),
+    s.markdown.indexOf('## 输入格式'),
+  );
+  assert.ok(description.includes('HH is an obsessive'));
+  assert.ok(!description.includes('输入描述'), '题目描述里混进了输入描述');
+  assert.ok(!description.includes('5400 1800'), '题目描述里混进了样例');
+  assert.ok(s.markdown.includes('## 输入格式'));
+  assert.ok(s.markdown.includes('## 输出格式'));
+});
+
+test('牛客：class 按词元精确匹配，question-oi 不吃掉 question-oi-hd', () => {
+  /*
+   * `\bquestion-oi\b` 对 `question-oi-hd` 同样成立（i 与 - 之间就是词边界）。
+   * 用 \b 的话一组样例会被当成四五块互相嵌套的东西，样例数量凭空翻几倍。
+   */
+  const s = parseNowcoder(fixture('nowcoder-13885.html'), '13885', NC_URL);
+  assert.equal(s.samples.length, 1);
+});
+
+test('牛客：认不出标题就报错，不返回空题面', () => {
+  assert.throws(() => parseNowcoder('<html><body>404</body></html>', '1', NC_URL), /没找到题目标题/);
+});
+
+/* ──────────────────────── LibreOJ ──────────────────────── */
+
+test('LOJ：结构化 Markdown 直接用，章节名按出题人写的来', () => {
+  const s = parseLoj(lojFixture(), '10000', LOJ_URL);
+  assert.equal(s.title, '「一本通 1.1 例 1」活动安排');
+  assert.equal(s.timeLimitMs, 1000);
+  assert.equal(s.memoryLimitMb, 512);
+  assert.ok(s.markdown.includes('## 题目描述'));
+  assert.ok(s.markdown.includes('## 输入格式'));
+  assert.ok(s.markdown.includes('## 输出格式'));
+  // 出题人写的是「数据范围与提示」，不在归一化表里——原样保留，不硬掰成「提示」
+  assert.ok(s.markdown.includes('## 数据范围与提示'));
+});
+
+test('LOJ：样例按 sampleId 取，插在正文引用它的位置', () => {
+  const s = parseLoj(lojFixture(), '10000', LOJ_URL);
+  assert.equal(s.samples.length, 1);
+  assert.equal(s.samples[0].input, '4\n1 3\n4 6\n2 5\n1 7\n');
+  assert.equal(s.samples[0].output, '2\n');
+  // 样例排在「数据范围与提示」之前，与网站上的阅读顺序一致
+  assert.ok(s.markdown.indexOf('## 样例 #1') < s.markdown.indexOf('## 数据范围与提示'));
+});
+
+test('LOJ：多组样例按各自的 sampleId 编号，不是每节都从 #1 重来', () => {
+  /*
+   * LOJ 的样例是被正文按下标引用的，一节一个。编号每次都从 1 开始的话，一份三组
+   * 样例的题面里会出现三个「样例 #1」，而 oi-bench 按标题去重，导入后只剩一组。
+   */
+  const body = {
+    localizedContentsOfLocale: {
+      title: '三组样例',
+      contentSections: [
+        { type: 'Sample', sectionTitle: '样例一', sampleId: 0 },
+        { type: 'Sample', sectionTitle: '样例二', sampleId: 1 },
+        { type: 'Sample', sectionTitle: '样例三', sampleId: 2 },
+      ],
+    },
+    samples: [
+      { inputData: 'a', outputData: 'A' },
+      { inputData: 'b', outputData: 'B' },
+      { inputData: 'c', outputData: 'C' },
+    ],
+    judgeInfo: { timeLimit: 1000, memoryLimit: 256 },
+  };
+  const s = parseLoj(body, '1', LOJ_URL);
+  assert.ok(s.markdown.includes('### 样例输入 #1'));
+  assert.ok(s.markdown.includes('### 样例输入 #2'));
+  assert.ok(s.markdown.includes('### 样例输入 #3'));
+  assert.equal(s.markdown.split('## 样例 #1').length - 1, 1);
+});
+
+test('LOJ：没被引用的样例补在末尾，不能丢', () => {
+  const body = {
+    localizedContentsOfLocale: { title: '只引用了一组', contentSections: [{ type: 'Sample', sampleId: 0 }] },
+    samples: [
+      { inputData: 'a', outputData: 'A' },
+      { inputData: 'b', outputData: 'B' },
+    ],
+  };
+  const s = parseLoj(body, '1', LOJ_URL);
+  assert.equal(s.samples.length, 2);
+  assert.ok(s.markdown.includes('### 样例输入 #2'));
+});
+
+test('LOJ：不公开的题按 error 报错，而不是看 HTTP 状态', () => {
+  /*
+   * 接口对没权限的题返回 `{ error: 'PERMISSION_DENIED' }` 而 **HTTP 是 201**，
+   * 状态码在这里毫无信息量。
+   */
+  assert.throws(() => parseLoj({ error: 'PERMISSION_DENIED' }, '1000', 'https://loj.ac/p/1000'), /不公开/);
+  assert.throws(() => parseLoj({ error: 'NO_SUCH_PROBLEM' }, '999999', LOJ_URL), /NO_SUCH_PROBLEM/);
+});
+
+test('LOJ：交互题没有 judgeInfo 时限制为空，不编一个默认值', () => {
+  const body = {
+    localizedContentsOfLocale: { title: '交互题', contentSections: [{ type: 'Text', sectionTitle: '题目描述', text: '正文' }] },
+    samples: [],
+  };
+  const s = parseLoj(body, '2', LOJ_URL);
+  assert.equal(s.timeLimitMs, null);
+  assert.equal(s.memoryLimitMb, null);
+  assert.ok(!s.markdown.includes('timeLimitMs:'));
 });
 
 test('取块时标签名允许带数字（h1–h6）', () => {

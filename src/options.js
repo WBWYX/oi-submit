@@ -1,7 +1,7 @@
 import { DEFAULT_SETTINGS } from './shared/platforms.js';
 
 const $ = (id) => document.getElementById(id);
-const PLATFORMS = ['luogu', 'codeforces', 'atcoder', 'timus'];
+const PLATFORMS = ['luogu', 'codeforces', 'atcoder', 'timus', 'qoj', 'nowcoder', 'loj'];
 
 async function load() {
   const stored = await chrome.storage.local.get('settings');
@@ -14,6 +14,7 @@ async function load() {
   for (const p of PLATFORMS) $(`lang-${p}`).value = s.language[p] ?? '';
   $('o2').checked = Boolean(s.enableO2);
   $('judgeid').value = s.timusJudgeId ?? '';
+  $('loj-std').value = s.lojStandard ?? '';
   $('report').checked = Boolean(s.reportResult);
   $('manual').checked = Boolean(s.manualSubmit);
 }
@@ -34,6 +35,7 @@ $('save').addEventListener('click', async () => {
       enableO2: $('o2').checked,
       // Judge ID 去掉首尾空格：从网页上复制多半会带一个
       timusJudgeId: $('judgeid').value.trim(),
+      lojStandard: $('loj-std').value.trim(),
       reportResult: $('report').checked,
       manualSubmit: $('manual').checked,
     },

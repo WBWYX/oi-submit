@@ -1,6 +1,6 @@
 # OI Submit
 
-把 OI Bench 里的代码提交到 **洛谷 / Codeforces / AtCoder / Timus(URAL)** 的浏览器扩展。
+把 OI Bench 里的代码提交到 **洛谷 / Codeforces / AtCoder / Timus(URAL) / QOJ / 牛客 / LibreOJ** 的浏览器扩展。
 
 替代 CPH-NG Submit，多出三件它没有的事：
 
@@ -9,9 +9,10 @@
 | 选语言 | 不管 —— 用网页上「你上次选的那个」；AtCoder 更是写死 `6017` | 按平台配置，**按语言名文本匹配**而不是选项编号 |
 | 洛谷 O2 | 不管 | 可配置，提交时设置 |
 | Timus | 不支持 | 支持（凭据是 Judge ID，不需要登录态） |
+| QOJ / 牛客 / LibreOJ | 不支持 | 支持 |
 | 评测结果 | 发出去就没消息了 | 回传给 OI Bench，面板上直接看 |
 | 最后那一下 | 直接替你点 | **默认填好就停下，由你自己点提交**（可关） |
-| 抓题面 | 不做 | 四家都能抓，转成 Markdown 存到题目目录 |
+| 抓题面 | 不做 | 七家都能抓，转成 Markdown 存到题目目录 |
 
 ## 安装
 
@@ -43,6 +44,11 @@ AtCoder 填 `C++ 20`。这么设计是因为 **AtCoder 的语言编号每场比�
 Timus 要填 **Judge ID**（在[作者信息页](https://acm.timus.ru/authedit.aspx)能看到）——
 Timus 没有登录态，这串东西就是凭据。它只存在本机这个扩展的存储里。
 
+LibreOJ 单独有一项 **C++ 标准**。LOJ 把编译选项拆成四个下拉（compiler / std / O / m），
+其中 `std` 的默认值是 **c++11**，比别家低一大截：带 `auto` 返回值、结构化绑定的代码
+在洛谷交得好好的，到这儿直接 CE，而人第一反应多半是去查自己的代码。默认填 c++17，
+留空则不动页面上的选项。（优化等级 `O` 那边默认就是 2，不用管。）
+
 ## 提交方式
 
 默认是**填好表单、把提交按钮标出来（橙色描边 + 滚动到可见），然后停下等你点**。
@@ -57,6 +63,10 @@ Timus 没有登录态，这串东西就是凭据。它只存在本机这个扩�
 ## 抓题面
 
 侧栏点「抓取题面」时，题面由**这个扩展**去取，不再走 icpc-workbench 的服务端。
+
+七家里 **LibreOJ 那份质量最高**：它的接口直接给结构化数据，正文本来就是 Markdown
+（`api.loj.ac/api/problem/getProblem`），所以那条路上一条认标签的正则都没有。
+其余六家都是从 HTML 里扒。
 
 搬过来的理由很实际：服务端为了冒充浏览器，背着三样东西——平台登录 Cookie 要单独配、
 洛谷的 C3VK 挑战要自己重试、Codeforces 在 Cloudflare 后面按 **TLS 指纹**拦截（Node 的
@@ -75,6 +85,16 @@ Timus 没有登录态，这串东西就是凭据。它只存在本机这个扩�
   （CPH-NG 是用一个 WASM OCR 模型自动识别的，那一块没有复刻。）
 - 洛谷的语言与 O2 是自绘控件，不是原生 `<select>`。扩展按文本去找并且
   **把实际选中的结果回传**，面板上能看到「语言 C++17 · O2 开」——对不上当场就能发现。
+- **LibreOJ 的提交必须走页面，不能走它的 API。** LOJ 给 `submission/submit` 挂了
+  工作量证明 + 腾讯验证码（`{captchaAction:"submit_problem", proofOfWorkAction:"submit_problem"}`），
+  在扩展里复刻这两样既不现实、也会在它调难度或换验证码供应商那天悄悄失效。
+  驱动页面就没这问题——那两样是页面自己的事。
+- **牛客那一下比别家弱。** 别家提交会跳转，「到了结果页」是硬判据；牛客就地提交不跳转，
+  只能看状态区的文字，所以这里要求出现「判题机收下了」的明确信号才算成功。
+  牛客提交还会弹验证码，那一步得你自己过。
+- **QOJ 的语言下拉、代码框都是 JS 运行时拼出来的**（uoj.js 的 `source_code_form_group`），
+  所以扩展依赖的是那段生成代码的命名规则而不是页面 HTML。另外它的「高级编辑器」
+  （CodeMirror）会接管代码框，扩展会先把它摘掉再填。
 - 只做提交，不做 Competitive Companion 那种抓题目的事（那个仍由 OI Bench 的网关直接收）。
 
 ## 结构
@@ -84,7 +104,8 @@ manifest.json          MV3
 src/shared/sio.js      手写的 socket.io v4 客户端（不装依赖的原因见文件头）
 src/shared/platforms.js 平台识别、提交页 URL 构造、语言匹配（纯函数，有测试）
 src/background.js      service worker：连 router、开提交页、转发结果
-src/content/           四个平台各自的填表与结果回读
+src/content/           七个平台各自的填表与结果回读
+src/content/editor.js  往 CodeMirror 5/6、Monaco、原生 textarea 里塞代码（为什么不能直接赋值见文件头）
 test/                  node:test，跑 `npm test`
 ```
 
