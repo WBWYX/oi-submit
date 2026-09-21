@@ -80,7 +80,7 @@ export function parseCodeforces(html, key, url) {
     problemKey: key,
     title,
     url,
-    markdown: withFrontMatter(parts.join('\n'), 'codeforces', key, title, url, {
+    markdown: withFrontMatter(normalizeCfMath(parts.join('\n')), 'codeforces', key, title, url, {
       timeLimitMs,
       memoryLimitMb,
     }),
@@ -88,6 +88,31 @@ export function parseCodeforces(html, key, url) {
     timeLimitMs,
     memoryLimitMb,
   };
+}
+
+/** CF 原始文本用三个美元符号，块公式用六个；相邻行内公式不能误判成块。 */
+export function normalizeCfMath(markdown) {
+  return markdown.split(/(```[\s\S]*?```)/g).map((part, index) => {
+    if (index % 2) return part;
+    const tokens = [];
+    for (const match of part.matchAll(/\${6}([\s\S]*?)\${6}|\${3}([\s\S]*?)\${3}/g)) {
+      const display = match[1] !== undefined;
+      const tex = (match[1] ?? match[2]).trim()
+        .replace(/\\text\{∗\}/g, '\\ast').replace(/\\text\{†\}/g, '\\dagger');
+      const prev = tokens.at(-1);
+      if (prev && !display && !prev.display && prev.end === match.index) {
+        prev.tex += tex;
+        prev.end = match.index + match[0].length;
+      } else tokens.push({ start: match.index, end: match.index + match[0].length, display, tex });
+    }
+    let result = '', cursor = 0;
+    for (const token of tokens) {
+      result += part.slice(cursor, token.start);
+      result += token.display ? `\n\n$$\n${token.tex}\n$$\n\n` : `$${token.tex}$`;
+      cursor = token.end;
+    }
+    return result + part.slice(cursor);
+  }).join('');
 }
 
 function parseCfLimit(html, pattern, scale) {

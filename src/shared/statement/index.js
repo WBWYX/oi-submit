@@ -172,7 +172,10 @@ function assertSize(statement) {
  * 那个参数已失效，用它会拿回一整页 HTML。
  */
 async function fetchLuogu(pid, url) {
-  const target = `https://www.luogu.com.cn/problem/${pid}`;
+  const targetUrl = new URL(`https://www.luogu.com.cn/problem/${pid}`);
+  const contestId = new URL(url).searchParams.get('contestId');
+  if (contestId) targetUrl.searchParams.set('contestId', contestId);
+  const target = targetUrl.href;
   const res = await request(target, {
     'x-lentille-request': 'content-only',
     Accept: 'application/json',

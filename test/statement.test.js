@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { identifyUrl } from '../src/shared/statement/index.js';
-import { parseCodeforces } from '../src/shared/statement/codeforces.js';
+import { identifyUrl, fetchStatement } from '../src/shared/statement/index.js';
+import { parseCodeforces, normalizeCfMath } from '../src/shared/statement/codeforces.js';
 import { parseAtCoder } from '../src/shared/statement/atcoder.js';
 import { parseTimus } from '../src/shared/statement/timus.js';
 import { parseLuogu } from '../src/shared/statement/luogu.js';
@@ -37,6 +37,45 @@ const gbkFixture = (name) =>
   new TextDecoder('gbk').decode(readFileSync(join(here, 'fixtures', name)));
 
 const CF_URL = 'https://codeforces.com/contest/3/problem/B';
+
+test('CF 公式规范化保留样例，区分相邻行内公式与块公式', () => {
+  const md = 'Value $$$a_i \\le n$$$. MEX $$$\\operatorname{MEX}$$$$$$^{\\text{∗}}$$$.\n\n$$$$$$ [a,b] \\to [b,a] $$$$$$\n\n```\n$$$sample$$$\n```';
+  const result = normalizeCfMath(md);
+  assert.match(result, /Value \$a_i \\le n\$/);
+  assert.ok(result.includes('$\\operatorname{MEX}^{\\ast}$'));
+  assert.ok(result.includes('$$\n[a,b] \\to [b,a]\n$$'));
+  assert.ok(result.includes('```\n$$$sample$$$\n```'));
+});
+
+test('侧栏抓洛谷比赛题保留 contestId 和浏览器会话', async (t) => {
+  const url = 'https://www.luogu.com.cn/problem/U123?contestId=456';
+  t.mock.method(globalThis, 'fetch', async (target, options) => {
+    assert.equal(target, url);
+    assert.equal(options.credentials, 'include');
+    assert.equal(options.headers['x-lentille-request'], 'content-only');
+    return Response.json({ data: { problem: { content: { name: 'Test', description: 'Body' }, samples: [] } } });
+  });
+  assert.equal((await fetchStatement(url)).url, url);
+});
+
+test('AtCoder 侧栏解析尊重显式日文选择', () => {
+  const html = '<div id="task-statement"><span class="lang-en"><p>English body</p></span>' +
+    '<span class="lang-ja"><p>日本語本文</p></span></div>';
+  const result = parseAtCoder(html, 'abc999_a', 'https://atcoder.jp/contests/abc999/tasks/abc999_a?lang=ja');
+  assert.match(result.markdown, /日本語本文/);
+  assert.doesNotMatch(result.markdown, /English body/);
+});
+
+test('CF 题面解析输出标准公式和逐行样例', () => {
+  const html = '<div class="problem-statement"><div class="header"><div class="title">B. Test</div></div>' +
+    '<div>Value $$$a_i \\le n$$$.</div><div class="sample-tests"><div class="sample-test">' +
+    '<div class="input"><pre><div>2</div><div>3 6 3</div><div>3 6 10</div></pre></div>' +
+    '<div class="output"><pre>3<br>7<br></pre></div></div></div></div>';
+  const parsed = parseCodeforces(html, '2266B', CF_URL);
+  assert.ok(parsed.markdown.includes('$a_i \\le n$'));
+  assert.doesNotMatch(parsed.markdown, /\${3}/);
+  assert.deepEqual(parsed.samples, [{ input: '2\n3 6 3\n3 6 10\n', output: '3\n7\n' }]);
+});
 const AT_URL = 'https://atcoder.jp/contests/abc475/tasks/abc475_c';
 const TIMUS_URL = 'https://acm.timus.ru/problem.aspx?space=1&num=1297';
 const QOJ_URL = 'https://qoj.ac/problem/1000';

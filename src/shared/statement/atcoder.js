@@ -15,7 +15,8 @@ export function parseAtCoder(html, key, url) {
    * 优先英文：本仓库的其他题面也都是英文/中文混排，而日文对多数人不可读。
    * 没有英文块（旧比赛只有日文）就退回整块。
    */
-  const scoped = sliceClass(area, 'lang-en') ?? sliceClass(area, 'lang-ja') ?? area;
+  const language = new URL(url).searchParams.get('lang') === 'ja' ? 'ja' : 'en';
+  const scoped = sliceClass(area, `lang-${language}`) ?? sliceClass(area, 'lang-en') ?? sliceClass(area, 'lang-ja') ?? area;
 
   /*
    * 标题在 <span class="h2"> 里，但那个元素后面还跟着「Editorial」链接。
