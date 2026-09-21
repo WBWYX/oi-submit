@@ -14,19 +14,20 @@ async function refresh() {
     return;
   }
   const connected = state.state === 'connected';
+  $('workbench').textContent = `ICPC 赛事：${state.workbenchState === 'connected' ? '已连接' : '未连接，请打开 ICPC Workbench'}`;
   $('dot').classList.toggle('on', connected);
   $('state').textContent = connected
     ? state.isActive
-      ? '已连接 · 活动浏览器'
-      : '已连接 · 非活动'
+      ? 'OI Bench 已连接 · 活动浏览器'
+      : 'OI Bench 已连接 · 非活动'
     : state.state === 'connecting'
       ? '连接中…'
-      : '未连接';
+      : 'OI Bench 未连接';
   $('detail').textContent = connected
     ? state.isActive
       ? `端口 ${state.port}，提交会送到这里`
       : `端口 ${state.port}，提交目前送往另一个浏览器`
-    : `连不上 127.0.0.1:${state.port}——VS Code 开着吗？`;
+    : '提交代码时需打开 VS Code；ICPC 赛事读取不受影响';
 
   if (state.lastMessage) {
     $('msg').hidden = false;

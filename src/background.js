@@ -15,15 +15,20 @@
  */
 
 import { SocketIoClient, State } from './shared/sio.js';
-import { DEFAULT_SETTINGS, PLATFORM_NAME, submitTarget } from './shared/platforms.js';
+import { DEFAULT_SETTINGS, submitTarget } from './shared/platforms.js';
+import { PendingTasks } from './shared/pending.js';
 import { fetchStatement } from './shared/statement/index.js';
+import { fetchEditorial, listEditorials } from './shared/editorial/index.js';
+import { createPageFetcher } from './shared/page-fetch.js';
+import { connectWorkbench } from './shared/workbench.js';
 
-/** tabId → 待处理的提交任务，存在 session 存储里（见文件头） */
-const PENDING_KEY = 'pending';
+const pendingTasks = new PendingTasks(chrome.storage.session);
+const fetchPage = createPageFetcher();
 
 let socket = null;
 let settings = { ...DEFAULT_SETTINGS };
 let lastError = '';
+let workbench = null;
 
 async function loadSettings() {
   const stored = await chrome.storage.local.get('settings');
@@ -35,15 +40,6 @@ async function loadSettings() {
   return settings;
 }
 
-async function readPending() {
-  const got = await chrome.storage.session.get(PENDING_KEY);
-  return got[PENDING_KEY] ?? {};
-}
-
-async function writePending(map) {
-  await chrome.storage.session.set({ [PENDING_KEY]: map });
-}
-
 /* ────────────────────────── 连接 ────────────────────────── */
 
 async function connect() {
@@ -52,7 +48,9 @@ async function connect() {
   lastError = '';
 
   socket = new SocketIoClient(`ws://127.0.0.1:${cfg.port}`, { type: 'browser' });
+  let connectionGeneration = 0;
   socket.onState((state) => {
+    connectionGeneration++;
     void updateBadge(state);
     void chrome.runtime.sendMessage({ type: 'stateChanged' }).catch(() => {
       /* popup 没开着就没人收，正常 */
@@ -72,7 +70,29 @@ async function connect() {
     void handleStatementRequest(data);
   });
 
+  // 自动重连会复用 SocketIoClient；既绑定实例，也核对收到请求时的连接代际。
+  const connection = socket;
+  connection.on('editorialListRequest', (data) => {
+    const generation = connectionGeneration;
+    void handleReadRequest(connection, data, 'editorialListResult', 'editorials',
+      () => listEditorials(data?.url), () => generation === connectionGeneration);
+  });
+  connection.on('editorialRequest', (data) => {
+    const generation = connectionGeneration;
+    void handleReadRequest(connection, data, 'editorialResult', 'editorial',
+      () => fetchEditorial(data?.source), () => generation === connectionGeneration);
+  });
+  connection.on('pageFetchRequest', (data) => {
+    const generation = connectionGeneration;
+    void handleReadRequest(connection, data, 'pageFetchResult', 'page',
+      () => fetchPage(data), () => generation === connectionGeneration, '读取平台页面失败');
+  });
+
   socket.connect();
+  workbench?.disconnect();
+  workbench = connectWorkbench(fetchPage, () => {
+    void chrome.runtime.sendMessage({ type: 'stateChanged' }).catch(() => {});
+  });
 }
 
 async function updateBadge(state) {
@@ -142,9 +162,7 @@ async function handleSubmitRequest(data) {
     report(data, { ok: false, message: '打不开提交页' });
     return;
   }
-  const pending = await readPending();
-  pending[tab.id] = task;
-  await writePending(pending);
+  await pendingTasks.update(tab.id, () => task);
 }
 
 /* ────────────────────────── 抓题面 ────────────────────────── */
@@ -174,6 +192,21 @@ async function handleStatementRequest(data) {
   }
 }
 
+async function handleReadRequest(connection, data, event, field, fetcher, isCurrent, errorTitle = '抓取题解失败') {
+  const requestId = data?.requestId;
+  if (typeof requestId !== 'string' || !requestId) return;
+  try {
+    const result = await fetcher();
+    if (connection !== socket || !isCurrent()) return;
+    connection.emit(event, { requestId, ok: true, [field]: result });
+  } catch (error) {
+    if (connection !== socket || !isCurrent()) return;
+    const message = String(error?.message ?? error);
+    connection.emit(event, { requestId, ok: false, error: message });
+    notify(errorTitle, message);
+  }
+}
+
 /** 把结果发回 oi-bench。发不出去（没连上）就只剩通知，至少人知道发生了什么。 */
 function report(data, result) {
   const payload = {
@@ -200,26 +233,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     if (msg?.type === 'pageReady') {
       // 内容脚本每次页面加载都会问一句「这个标签页有我的活儿吗」
-      const pending = await readPending();
-      sendResponse(tabId === undefined ? null : (pending[tabId] ?? null));
+      sendResponse(tabId === undefined ? null : await pendingTasks.get(tabId));
       return;
     }
 
     if (msg?.type === 'phase' && tabId !== undefined) {
       // 填表完成 → 转入盯结果阶段；页面此时通常已经跳到评测记录页
-      const pending = await readPending();
-      if (pending[tabId]) {
-        pending[tabId] = { ...pending[tabId], phase: msg.phase };
-        await writePending(pending);
-      }
+      await pendingTasks.update(tabId, (task) => task && { ...task, phase: msg.phase });
       sendResponse(true);
       return;
     }
 
     if (msg?.type === 'filled' && tabId !== undefined) {
       // 表单填好了，但还没交出去——单独一个状态，别跟「已提交」混为一谈
-      const pending = await readPending();
-      const task = pending[tabId];
+      const task = await pendingTasks.get(tabId);
       if (task) {
         report(
           { requestId: task.requestId, url: task.submittedUrl },
@@ -236,8 +263,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
 
     if (msg?.type === 'submitDone' && tabId !== undefined) {
-      const pending = await readPending();
-      const task = pending[tabId];
+      const task = await pendingTasks.get(tabId);
       if (task) {
         report(
           { requestId: task.requestId, url: task.submittedUrl },
@@ -249,8 +275,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           },
         );
         if (!msg.ok || !task.reportResult) {
-          delete pending[tabId];
-          await writePending(pending);
+          await pendingTasks.update(tabId, () => null);
         }
       }
       sendResponse(true);
@@ -258,8 +283,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
 
     if (msg?.type === 'verdict' && tabId !== undefined) {
-      const pending = await readPending();
-      const task = pending[tabId];
+      const task = await pendingTasks.get(tabId);
       if (task) {
         socket?.emit('submitVerdict', {
           requestId: task.requestId,
@@ -273,8 +297,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           final: Boolean(msg.final),
         });
         if (msg.final) {
-          delete pending[tabId];
-          await writePending(pending);
+          await pendingTasks.update(tabId, () => null);
         }
       }
       sendResponse(true);
@@ -285,6 +308,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const session = await chrome.storage.session.get(['isActive', 'lastMessage']);
       sendResponse({
         state: socket?.state ?? State.CLOSED,
+        workbenchState: workbench?.state ?? State.CLOSED,
         isActive: Boolean(session.isActive),
         port: settings.port,
         lastMessage: session.lastMessage ?? lastError,
@@ -312,13 +336,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 /** 标签页关掉就把它的待办清掉，别让 session 存储里攒一堆孤儿 */
 chrome.tabs.onRemoved.addListener((tabId) => {
-  void (async () => {
-    const pending = await readPending();
-    if (pending[tabId]) {
-      delete pending[tabId];
-      await writePending(pending);
-    }
-  })();
+  void pendingTasks.update(tabId, () => null);
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {

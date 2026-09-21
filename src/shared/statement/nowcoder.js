@@ -32,7 +32,11 @@
  */
 
 import { StatementError, endsWithNewline, sampleSections, withFrontMatter } from './common.js';
-import { decodeEntities, htmlToMarkdown, sliceClass, stripTags } from './html.js';
+import { decodeEntities, htmlToMarkdown as convertHtml, sliceClass, stripTags } from './html.js';
+
+function htmlToMarkdown(html) {
+  return convertHtml(html, { baseUrl: 'https://ac.nowcoder.com/', equationImages: true });
+}
 
 export function parseNowcoder(html, key, url) {
   const title = decodeEntities(stripTags(sliceClass(html, 'question-title') ?? '')).trim();

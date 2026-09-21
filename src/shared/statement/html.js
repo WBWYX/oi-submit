@@ -98,6 +98,27 @@ export function decodeEntities(text) {
  */
 export function htmlToMarkdown(html, opts = {}) {
   let text = html;
+  const formulas = [];
+  // 先保护 TeX，避免其中的 <、>、& 被后续 HTML 清理误处理。
+  let token = 'OIBENCHMATH';
+  while (html.includes(token)) token += 'X';
+  if (opts.equationImages) {
+    text = text.replace(/<img\b[^>]*>/gi, tag => {
+      const attr = name => {
+        const m = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i').exec(tag);
+        return decodeEntities(m?.[1] ?? m?.[2] ?? m?.[3] ?? '');
+      };
+      const src = attr('src');
+      try {
+        const url = new URL(src, opts.baseUrl);
+        if (!/\/equation$/.test(url.pathname)) return tag;
+        const tex = (url.searchParams.get('tex') || attr('alt')).trim();
+        if (!tex) return tag; // 无 TeX 时保留原图，不静默丢失。
+        const index = formulas.push(`$${tex}$`) - 1;
+        return `${token}${index}END`;
+      } catch { return tag; }
+    });
+  }
   // script/style 整块丢掉，它们的内容不是给人看的
   text = text.replace(/<(script|style)[\s\S]*?<\/\1>/gi, '');
   /*
@@ -158,7 +179,8 @@ export function htmlToMarkdown(html, opts = {}) {
   return text
     .replace(/[ \t]+$/gm, '')
     .replace(/\n{3,}/g, '\n\n')
-    .trim();
+    .trim()
+    .replace(new RegExp(`${token}(\\d+)END`, 'g'), (whole, index) => formulas[Number(index)] ?? whole);
 }
 
 /** 取 pre 里的纯文本，处理新旧两种行结构（Codeforces 用）。 */

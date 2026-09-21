@@ -1,8 +1,8 @@
 {
   "name": "oi-submit",
-  "version": "0.1.0",
+  "version": "0.2.4",
   "private": true,
-  "description": "把 OI Bench 里的代码提交到洛谷 / Codeforces / AtCoder / Timus / QOJ / 牛客 / LibreOJ / HDU，并按链接抓取题面。",
+  "description": "把 OI Bench 里的代码提交到洛谷 / Codeforces / AtCoder / Timus / QOJ / 牛客 / LibreOJ / HDU，并抓取题面与题解。",
   "type": "module",
   "scripts": {
     "test": "node --test \"test/*.test.js\""

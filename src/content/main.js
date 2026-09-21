@@ -73,7 +73,7 @@ async function run() {
           ok: false,
           message: result?.submitted
             ? String(error?.message ?? error)
-            : `一直没等到你点提交（${String(error?.message ?? error)}）`,
+            : `未能确认本次提交已被平台接收（${String(error?.message ?? error)}）`,
         });
         return;
       }

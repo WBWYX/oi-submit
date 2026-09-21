@@ -2,6 +2,10 @@
 
 把 OI Bench 里的代码提交到 **洛谷 / Codeforces / AtCoder / Timus(URAL) / QOJ / 牛客 / LibreOJ / HDU** 的浏览器扩展。
 
+同时支持 ICPC Workbench 直接读取洛谷、牛客、Codeforces、AtCoder 比赛列表，无需启动 VS Code。
+扩展分别连接 OI Bench（默认 27121）和 ICPC（固定本机 27122），弹窗分别显示连接状态。
+更新源码后，在浏览器扩展管理页点击「重新加载」。若浏览器后台已休眠，稍后启动 ICPC 时可打开扩展弹窗点击「重连」。
+
 替代 CPH-NG Submit，多出三件它没有的事：
 
 | | CPH-NG Submit | OI Submit |
@@ -13,6 +17,7 @@
 | 评测结果 | 发出去就没消息了 | 回传给 OI Bench，面板上直接看 |
 | 最后那一下 | 直接替你点 | **默认填好就停下，由你自己点提交**（可关） |
 | 抓题面 | 不做 | 八家都能抓，转成 Markdown 存到题目目录 |
+| 抓题解 | 不做 | 洛谷 / Codeforces / 牛客 / AtCoder，选取一篇后保存 Markdown |
 
 ## 安装
 
@@ -30,6 +35,33 @@
 端口是不是 27121（OI Bench 的 `oiBench.router.port`）。
 
 ## 配置
+
+### 获取题解
+
+更新源码后，在浏览器扩展管理页重新加载 OI Submit，并重载更新后的 OI Bench。
+本次增加 `blog.nowcoder.net` 访问权限，用于读取牛客题目关联的题解正文。
+
+在 OI Bench 打开题目源文件，点击侧栏「抓取题解」，或执行命令「OI Bench: 抓取题解」。
+扩展优先使用当前文件已绑定的题目链接；未绑定时会询问链接。选择题解后保存为
+同目录的 `<题目基名>_solution.md`，其中记录来源、作者和抓取时间，随后打开文档。
+已有文件覆盖前会确认；编辑器里未保存的题解不会被覆盖。
+
+- 洛谷：读取该题的题解列表，需要先在浏览器登录洛谷。
+- Codeforces：从比赛材料中的 Tutorial/Editorial 入口获取；整场题解会按整篇保存。
+- 牛客：支持题库页和比赛题页，读取该题关联的题解博客。
+- AtCoder：读取当前题目的站内文字题解，有多个语言或作者时可选择；外部博客和视频不下载。
+
+没有公开题解、需要登录或平台拒绝访问时，会返回具体原因。下载只在手动点击时进行，
+不会自动批量抓取；保存的题解也可被已有的 L3 本地证据扫描识别。
+
+### OI Bench MCP 读取
+
+OI Bench 的统一 MCP 通过本扩展读取洛谷、Codeforces、AtCoder 和牛客的题目、比赛、题解，
+以及洛谷讨论与评测记录。登录状态沿用浏览器，不需要导出 Cookie。
+更新后请重新加载扩展；新增的 `www.nowcoder.com` 和 `www.codeforces.com` 权限用于兼容原有读取入口。
+若平台要求登录、安全验证，或浏览器无法读取重定向，请先在浏览器打开对应原文并处理提示，再重试。
+
+### 提交设置
 
 右键扩展图标 → 选项。
 
@@ -103,6 +135,7 @@ LibreOJ 单独有一项 **C++ 标准**。LOJ 把编译选项拆成四个下拉�
 manifest.json          MV3
 src/shared/sio.js      手写的 socket.io v4 客户端（不装依赖的原因见文件头）
 src/shared/platforms.js 平台识别、提交页 URL 构造、语言匹配（纯函数，有测试）
+src/shared/page-fetch.js MCP 只读页面通道、路径与请求头白名单、站点限速和下载上限
 src/background.js      service worker：连 router、开提交页、转发结果
 src/content/           八个平台各自的填表与结果回读
 src/content/editor.js  往 CodeMirror 5/6、Monaco、原生 textarea 里塞代码（为什么不能直接赋值见文件头）

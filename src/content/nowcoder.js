@@ -43,7 +43,7 @@ import { pickFromCustomDropdown, setCode } from './editor.js';
 const MANUAL_WAIT_MS = 300000;
 
 /** 判题机确实收下了这一发的信号。 */
-const ACCEPTED_BY_JUDGE = /判题中|正在判题|排队中|等待判题|已提交|正在评测|评测中/;
+const ACCEPTED_BY_JUDGE = /判题中|正在判题|排队中|等待判题|已提交|正在评测|评测中|等待评测|运行中/;
 
 /** 仍在评测中（结果轮询用）。 */
 const IN_FLIGHT = /判题中|正在判题|排队中|等待判题|正在提交|正在评测|评测中|等待评测|运行中/;
@@ -60,12 +60,40 @@ const FINAL_VERDICT =
  * 那么一次根本没发出去的提交（验证码没过、没登录）会当场被判成成功——
  * 页面上那个「答案正确」是上一发的。又是 Timus 那次谎报成功的形状。
  *
- * 所以判据是**状态变了**，而不是「有个状态」。
+ * 所以判据是**本次观察到了状态变化**，而不是「有个状态」。MutationObserver
+ * 保留中间的排队/评测状态，避免新旧结果相同时被定时轮询漏掉。
  *
  * 模块级变量在这里是安全的：牛客就地提交、不跳转，fill 和 waitUntilSubmitted
  * 跑在同一个文档、同一次脚本加载里（会跳转的平台不能这么写，状态得放后台）。
  */
 let statusBeforeSubmit = '';
+let submissionObserved = false;
+let submissionObserver = null;
+const STATUS_AREA = '.js-run-info, .subject-describe-answer, .terminal-code-status, .code-status';
+
+/** 在点提交前开始观察，保留短于轮询间隔的评测状态变化。 */
+export function observeSubmission() {
+  submissionObserver?.disconnect();
+  statusBeforeSubmit = readStatus()?.text ?? '';
+  submissionObserved = false;
+  submissionObserver = new MutationObserver((records) => {
+    const now = readStatus()?.text ?? '';
+    if (now && now !== statusBeforeSubmit && (ACCEPTED_BY_JUDGE.test(now) || FINAL_VERDICT.test(now))) {
+      submissionObserved = true;
+    }
+    // 同一轮 DOM 更新可能从旧 AC → 评测中 → 新 AC，读取时已经恢复成同样的文字。
+    for (const record of records) {
+      const el = record.target?.nodeType === 1 ? record.target : record.target?.parentElement;
+      if (!el?.closest?.(STATUS_AREA)) continue;
+      const texts = [record.oldValue ?? '', ...[...(record.removedNodes ?? [])].map(n => n.textContent ?? '')];
+      if (texts.some(text => {
+        const state = ACCEPTED_BY_JUDGE.exec(text)?.[0];
+        return state && state !== statusBeforeSubmit;
+      })) submissionObserved = true;
+    }
+  });
+  submissionObserver.observe(document.body, { subtree: true, childList: true, characterData: true, characterDataOldValue: true });
+}
 
 export async function fill(task) {
   // CodeMirror 挂上来才说明编辑器可用了，等它比等任何容器都准
@@ -75,11 +103,12 @@ export async function fill(task) {
   const language = await chooseLanguage(task.language);
   await setCode(editor, task.sourceCode);
 
-  statusBeforeSubmit = readStatus()?.text ?? '';
-
   const submit = findSubmitButton();
   if (!submit) throw new Error('找不到提交按钮（页面结构可能变了）');
-  const submitted = clickOrHighlight(submit, task.manualSubmit);
+  observeSubmission();
+  let submitted;
+  try { submitted = clickOrHighlight(submit, task.manualSubmit); }
+  catch (error) { submissionObserver?.disconnect(); throw error; }
 
   return { language, submitted };
 }
@@ -172,7 +201,7 @@ export function watch(onUpdate) {
  * 比什么都不报更误导（Timus 那边同一处考量）。
  */
 function readStatus() {
-  const area = document.querySelector('.js-run-info, .subject-describe-answer, .terminal-code-status, .code-status');
+  const area = document.querySelector(STATUS_AREA);
   const text = pickStatusText(area) || pickStatusText(document.body);
   if (!text) return null;
 
@@ -183,7 +212,7 @@ function readStatus() {
 function pickStatusText(root) {
   if (!root) return '';
   const raw = (root.textContent ?? '').replace(/\s+/g, ' ');
-  const hit = FINAL_VERDICT.exec(raw) ?? IN_FLIGHT.exec(raw);
+  const hit = IN_FLIGHT.exec(raw) ?? ACCEPTED_BY_JUDGE.exec(raw) ?? FINAL_VERDICT.exec(raw);
   return hit ? hit[0] : '';
 }
 
@@ -197,6 +226,7 @@ function pickStatusText(root) {
 export async function waitUntilSubmitted({ manual = false } = {}) {
   await waitFor(
     () => {
+      if (submissionObserved) return true;
       const now = readStatus()?.text ?? '';
       if (!now || now === statusBeforeSubmit) return false;
       return ACCEPTED_BY_JUDGE.test(now) || FINAL_VERDICT.test(now);
@@ -205,6 +235,9 @@ export async function waitUntilSubmitted({ manual = false } = {}) {
   ).catch(() => {
     const message = pageError();
     throw new Error(message ? `牛客拒绝了这次提交：${message}` : '提交后没等到判题状态');
+  }).finally(() => {
+    submissionObserver?.disconnect();
+    submissionObserver = null;
   });
 }
 

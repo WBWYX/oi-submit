@@ -107,7 +107,7 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  *
  * @param {() => {text:string, detail?:string, tests?:Array}|null} read 同步读取（扒 DOM）
  * @param {(text:string) => boolean} isFinal 判断是否已经是终态
- * @param {(update:{verdict:string, detail:string, tests:Array, final:boolean}) => void} onUpdate
+ * @param {(update:{verdict:string, detail:string, tests:Array, final:boolean}) => void|Promise<void>} onUpdate
  * @param {{readAsync?: () => Promise<{text:string, detail?:string, tests?:Array}|null>}} options
  *
  * 给了 `readAsync` 就优先用它（洛谷走自己的记录接口，比扒 DOM 可靠得多），
@@ -120,8 +120,8 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export async function pollVerdict(read, isFinal, onUpdate, options = {}) {
   const { timeoutMs = 120000, intervalMs = 1500, readAsync } = options;
   const deadline = Date.now() + timeoutMs;
-  let last = '';
-  let lastCount = -1;
+  let last = null;
+  let lastSnapshot = '';
 
   for (;;) {
     let got = null;
@@ -134,25 +134,27 @@ export async function pollVerdict(read, isFinal, onUpdate, options = {}) {
     }
     if (!got) got = read();
 
-    // 测试点数量会随评测推进增长，所以数量变了也算「有新东西」，不能只看结论文本
-    const count = got?.tests?.length ?? -1;
-    if (got && got.text && (got.text !== last || count !== lastCount)) {
-      last = got.text;
-      lastCount = count;
-      const final = isFinal(got.text);
-      onUpdate({
+    if (got?.text) {
+      const update = {
         verdict: got.text,
         detail: got.detail ?? '',
         tests: got.tests ?? [],
-        final,
-      });
-      if (final) return;
+        final: isFinal(got.text),
+      };
+      // 总状态和测试点数量不变时，逐点状态、耗时或通过率仍可能更新。
+      const snapshot = JSON.stringify(update);
+      if (snapshot !== lastSnapshot) {
+        last = update;
+        lastSnapshot = snapshot;
+        await onUpdate(update);
+      }
+      if (update.final) return;
     }
     if (Date.now() >= deadline) {
-      onUpdate({
-        verdict: last || '未知',
+      await onUpdate({
+        verdict: last?.verdict || '未知',
         detail: '等待评测结果超时，去页面上看吧',
-        tests: [],
+        tests: last?.tests ?? [],
         final: true,
       });
       return;

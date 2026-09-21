@@ -63,7 +63,7 @@ export class SocketIoClient {
   }
 
   emit(event, payload) {
-    if (this.#state !== State.CONNECTED || !this.#ws) return false;
+    if (this.#state !== State.CONNECTED || this.#ws?.readyState !== WebSocket.OPEN) return false;
     this.#ws.send(`42${JSON.stringify(payload === undefined ? [event] : [event, payload])}`);
     return true;
   }
@@ -71,6 +71,8 @@ export class SocketIoClient {
   connect() {
     this.#closedByUs = false;
     if (this.#state !== State.CLOSED) return;
+    if (this.#retryTimer !== null) clearTimeout(this.#retryTimer);
+    this.#retryTimer = null;
     this.#setState(State.CONNECTING);
 
     let ws;
@@ -84,11 +86,15 @@ export class SocketIoClient {
     }
     this.#ws = ws;
 
-    ws.onmessage = (ev) => this.#onFrame(String(ev.data));
+    ws.onmessage = (ev) => {
+      if (this.#ws === ws) this.#onFrame(String(ev.data));
+    };
     ws.onerror = () => {
       /* onclose 一定会跟着来，统一在那里处理 */
     };
     ws.onclose = () => {
+      // close 事件异步到达；旧连接不能清掉重连后创建的新 socket。
+      if (this.#ws !== ws) return;
       this.#ws = null;
       this.#setState(State.CLOSED);
       if (!this.#closedByUs) this.#scheduleRetry();
@@ -97,10 +103,11 @@ export class SocketIoClient {
 
   disconnect() {
     this.#closedByUs = true;
-    if (this.#retryTimer) clearTimeout(this.#retryTimer);
+    if (this.#retryTimer !== null) clearTimeout(this.#retryTimer);
     this.#retryTimer = null;
-    this.#ws?.close();
+    const ws = this.#ws;
     this.#ws = null;
+    ws?.close();
     this.#setState(State.CLOSED);
   }
 
@@ -144,7 +151,7 @@ export class SocketIoClient {
    * 而退避太激进又会在 VS Code 没开的时候每秒敲一次本机端口。
    */
   #scheduleRetry() {
-    if (this.#closedByUs || this.#retryTimer) return;
+    if (this.#closedByUs || this.#retryTimer !== null) return;
     const delay = Math.min(1000 * 2 ** this.#retry, 30000);
     this.#retry += 1;
     this.#retryTimer = setTimeout(() => {
