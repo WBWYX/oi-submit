@@ -58,7 +58,8 @@ export function parseAtCoder(html, key, url) {
     /<div class="part">\s*<section>\s*<h3>\s*(?:Sample|入力例|出力例)[\s\S]*?<\/section>\s*<\/div>/gi,
     '',
   );
-  const main = htmlToMarkdown(withoutSamples).trim();
+  // 题面中的图示经常使用 `/img/...` 这种相对地址；落盘后必须保留为绝对链接。
+  const main = htmlToMarkdown(withoutSamples, { baseUrl: url }).trim();
   if (main) parts.push(main, '');
 
   parts.push(...sampleSections(samples));

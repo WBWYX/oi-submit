@@ -89,7 +89,8 @@ export function parseQoj(html, id, url) {
       samplesPlaced = true;
       continue;
     }
-    const text = htmlToMarkdown(stripSampleBlocks(section.body)).trim();
+    // QOJ 题面图片常使用站内相对路径，不能让 Markdown 落盘后失去图片。
+    const text = htmlToMarkdown(stripSampleBlocks(section.body), { baseUrl: url }).trim();
     if (!text) continue;
     if (!heading) {
       if (hasHeadings) parts.push(text, '');

@@ -62,18 +62,19 @@ export function parseCodeforces(html, key, url) {
   const afterHeader = header ? block.slice(block.indexOf(header) + header.length) : block;
   const legendStart = afterHeader.search(/<div\b/i);
   const legend = legendStart >= 0 ? balancedFrom(afterHeader, legendStart) : null;
-  const main = htmlToMarkdown(legend ?? afterHeader);
+  const imageBaseUrl = url;
+  const main = htmlToMarkdown(legend ?? afterHeader, { baseUrl: imageBaseUrl });
   if (main.trim()) parts.push('## 题目描述', '', main.trim(), '');
 
   const input = sliceClass(block, 'input-specification');
-  if (input) parts.push('## 输入格式', '', htmlToMarkdown(dropFirstHeading(input)).trim(), '');
+  if (input) parts.push('## 输入格式', '', htmlToMarkdown(dropFirstHeading(input), { baseUrl: imageBaseUrl }).trim(), '');
   const output = sliceClass(block, 'output-specification');
-  if (output) parts.push('## 输出格式', '', htmlToMarkdown(dropFirstHeading(output)).trim(), '');
+  if (output) parts.push('## 输出格式', '', htmlToMarkdown(dropFirstHeading(output), { baseUrl: imageBaseUrl }).trim(), '');
 
   parts.push(...sampleSections(samples));
 
   const note = sliceClass(block, 'note');
-  if (note) parts.push('## 提示', '', htmlToMarkdown(dropFirstHeading(note)).trim(), '');
+  if (note) parts.push('## 提示', '', htmlToMarkdown(dropFirstHeading(note), { baseUrl: imageBaseUrl }).trim(), '');
 
   return {
     platform: 'codeforces',

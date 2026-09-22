@@ -69,7 +69,8 @@ export function parseTimus(html, num, url) {
       continue;
     }
     const heading = sectionName(section.heading);
-    const text = htmlToMarkdown(section.body).trim();
+    // Timus 的图示也可能是相对地址，转换时绑定题面 URL 作为基准。
+    const text = htmlToMarkdown(section.body, { baseUrl: url }).trim();
     if (!text) continue;
     if (heading) parts.push(`## ${heading}`, '', text, '');
     else parts.push('## 题目描述', '', text, '');

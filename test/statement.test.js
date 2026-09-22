@@ -148,6 +148,15 @@ test('Codeforces：标题、限制、样例都抓得到', () => {
   assert.equal(s.samples[0]?.output, '7\n2\n');
 });
 
+test('Codeforces：题面图片转成绝对 Markdown 链接', () => {
+  const html = `<div class="problem-statement">
+    <div class="header"><div class="title">A. Picture</div></div>
+    <div><p>See the tree:</p><img alt="tree" src="/images/tree.png"></div>
+  </div>`;
+  const s = parseCodeforces(html, '1A', 'https://codeforces.com/contest/1/problem/A?locale=en');
+  assert.match(s.markdown, /!\[\]\(https:\/\/codeforces\.com\/images\/tree\.png\)/);
+});
+
 test('Codeforces：题面主体不重复包含输入输出格式', () => {
   const s = parseCodeforces(fixture('cf-3B.html'), '3B', CF_URL);
   const body = s.markdown.slice(s.markdown.indexOf('## 题目描述'), s.markdown.indexOf('## 输入格式'));
@@ -210,6 +219,17 @@ test('AtCoder：<var> 里的公式要补回 $...$', () => {
   assert.ok(!s.markdown.includes('$$'), '不该出现 $$（那是行间公式，会把排版搞乱）');
 });
 
+test('AtCoder：题面图片转成绝对 Markdown 链接', () => {
+  const html = `
+    <span class="h2">图示题 - AtCoder</span>
+    <div id="task-statement"><span class="lang-en">
+      <p><img src="/img/tree.png"></p>
+    </span></div>
+    <p>Time Limit: 2 sec</p><p>Memory Limit: 1024 MiB</p>`;
+  const s = parseAtCoder(html, 'abc999_a', AT_URL);
+  assert.match(s.markdown, /!\[]\(https:\/\/atcoder\.jp\/img\/tree\.png\)/);
+});
+
 /* ────────────────────────── Timus（新增） ────────────────────────── */
 
 test('Timus：标题去掉题号，限制从 problem_limits 取', () => {
@@ -248,6 +268,14 @@ test('Timus：正文里不重复出现样例', () => {
 
 test('Timus：认不出标题就报错，不返回空题面', () => {
   assert.throws(() => parseTimus('<html><body>nothing</body></html>', '1', 'u'), /没找到题目标题/);
+});
+
+test('Timus：题面图片转成绝对 Markdown 链接', () => {
+  const html = `
+    <h2 class="problem_title">1297. Picture</h2>
+    <div id="problem_text"><p><img src="/images/tree.png"></p><h3>Input</h3><p>x</p></div>`;
+  const s = parseTimus(html, '1297', TIMUS_URL);
+  assert.match(s.markdown, /!\[]\(https:\/\/acm\.timus\.ru\/images\/tree\.png\)/);
 });
 
 /* ────────────────────────── 洛谷 ────────────────────────── */
@@ -393,6 +421,14 @@ test('QOJ：限制只在 badge 里找，不被内联脚本抢答', () => {
 test('QOJ：没有正文时报「可能要登录」，不返回空题面', () => {
   const html = '<h1 class="page-header">#9. 私有题</h1>';
   assert.throws(() => parseQoj(html, '9', 'https://qoj.ac/problem/9'), /登录/);
+});
+
+test('QOJ：题面图片转成绝对 Markdown 链接', () => {
+  const html = `
+    <h1 class="page-header">#7. Picture</h1>
+    <article class="uoj-article"><h2>Statement</h2><p><img src="/images/tree.png"></p></article>`;
+  const s = parseQoj(html, '7', 'https://qoj.ac/problem/7');
+  assert.match(s.markdown, /!\[]\(https:\/\/qoj\.ac\/images\/tree\.png\)/);
 });
 
 /* ──────────────────────── 牛客 ──────────────────────── */

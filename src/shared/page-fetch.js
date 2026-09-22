@@ -139,8 +139,12 @@ export function createPageFetcher({
       if (wait > 0) await sleep(wait);
       queue.last = now();
       if (api) queue.lastApi = queue.last;
+      // 洛谷的 C3VK 反爬挑战会对原地址自重定向并下发临时 Cookie。浏览器只有在
+      // 自动跟随这一次同站跳转时才会保存 Cookie；手动重定向会变成不可读取的
+      // opaqueredirect。其余平台仍保持手动重定向，继续阻止未验证的跨站跳转。
+      const redirect = site === 'luogu' ? 'follow' : 'manual';
       const response = await fetchImpl(url.href, {
-        method: 'GET', headers, credentials: 'include', redirect: 'manual', signal: AbortSignal.timeout(20000),
+        method: 'GET', headers, credentials: 'include', redirect, signal: AbortSignal.timeout(20000),
       });
       try {
         if (response.type === 'opaqueredirect') {

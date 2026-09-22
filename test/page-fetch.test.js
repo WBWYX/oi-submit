@@ -69,7 +69,7 @@ test('pageFetch 仅保留读取头，浏览器附带登录态且不回传 Cookie
     assert.equal(url, problem);
     assert.equal(init.method, 'GET');
     assert.equal(init.credentials, 'include');
-    assert.equal(init.redirect, 'manual');
+    assert.equal(init.redirect, 'follow');
     assert.ok(init.signal instanceof AbortSignal);
     assert.deepEqual(Object.fromEntries(init.headers), {
       accept: 'application/json', 'accept-language': 'zh-CN', 'x-lentille-request': 'content-only',
@@ -117,6 +117,18 @@ test('pageFetch 不把浏览器不可读重定向伪装为成功页面', async (
   const response = new Response('');
   Object.defineProperty(response, 'type', { value: 'opaqueredirect' });
   await assert.rejects(clocked(async () => response)({ url: problem }), /浏览器打开最终原文页面/);
+});
+
+test('pageFetch 洛谷允许跟随同站 C3VK 挑战重定向', async () => {
+  let redirect;
+  const fetchPage = createPageFetcher({
+    fetchImpl: async (_url, init) => {
+      redirect = init.redirect;
+      return new Response('{"data":{}}', { status: 200 });
+    },
+  });
+  await fetchPage({ url: 'https://www.luogu.com.cn/contest/list?_contentOnly=1&page=1' });
+  assert.equal(redirect, 'follow');
 });
 
 test('pageFetch 同一站点严格排队，CF API 两次开始至少相隔 2.1 秒', async () => {
